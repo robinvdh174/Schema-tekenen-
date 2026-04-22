@@ -3,13 +3,15 @@ import { Layer, Stage } from 'react-konva';
 import type Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useEditorStore } from '@/store/editorStore';
+import { useProjectStore } from '@/store/projectStore';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { Grid } from './Grid';
+import { SymbolRenderer } from '@/components/symbols/SymbolRenderer';
 import { clamp } from '@/utils/geometry';
 
 /**
- * The main editor canvas. Handles pan, wheel zoom, and pinch zoom.
- * Content layers will be mounted here as we add features in later phases.
+ * The main editor canvas. Handles pan, wheel zoom, pinch zoom, and renders
+ * all placed symbols for the currently active mode.
  */
 export const EditorCanvas = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,7 +24,13 @@ export const EditorCanvas = () => {
   const gridVisible = useEditorStore((s) => s.gridVisible);
   const gridSize = useEditorStore((s) => s.gridSize);
   const tool = useEditorStore((s) => s.tool);
+  const mode = useEditorStore((s) => s.mode);
   const setCursor = useEditorStore((s) => s.setCursor);
+  const clearSelection = useEditorStore((s) => s.clearSelection);
+
+  const symbols = useProjectStore((s) =>
+    mode === 'eendraad' ? s.project.eendraad.symbols : s.project.situatie.symbols
+  );
 
   const [isPanning, setIsPanning] = useState(false);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
@@ -36,8 +44,6 @@ export const EditorCanvas = () => {
       const pointer = stage.getPointerPosition();
       if (!pointer) return;
 
-      // Trackpad pan (ctrlKey=false, small delta, shift for horizontal)
-      // vs wheel zoom (often ctrlKey=true on pinch / big delta)
       const isZoomGesture = e.evt.ctrlKey || Math.abs(e.evt.deltaY) > 40;
       if (!isZoomGesture) {
         setViewport({
@@ -51,6 +57,13 @@ export const EditorCanvas = () => {
       zoomAt(factor, pointer);
     },
     [setViewport, viewport.offsetX, viewport.offsetY, zoomAt]
+  );
+
+  const handleStageClick = useCallback(
+    (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+      if (e.target === e.target.getStage()) clearSelection();
+    },
+    [clearSelection]
   );
 
   const handlePointerDown = useCallback(
@@ -102,7 +115,6 @@ export const EditorCanvas = () => {
     lastPointerRef.current = null;
   }, []);
 
-  // Two-finger pinch zoom support for iPad / touch devices.
   const handleTouchMove = useCallback(
     (e: KonvaEventObject<TouchEvent>) => {
       const stage = stageRef.current;
@@ -130,7 +142,6 @@ export const EditorCanvas = () => {
 
       const factor = clamp(dist / prev.distance, 0.5, 2);
       if (factor !== 1) zoomAt(factor, center);
-      // Two-finger pan alongside pinch.
       const pan = {
         x: center.x - prev.center.x,
         y: center.y - prev.center.y,
@@ -150,7 +161,6 @@ export const EditorCanvas = () => {
     if (e.evt.touches.length < 2) pinchRef.current = null;
   }, []);
 
-  // Track space key so holding it allows temporary panning.
   useEffect(() => {
     const global = window as unknown as { __spaceDown?: boolean };
     const down = (e: KeyboardEvent) => {
@@ -167,16 +177,28 @@ export const EditorCanvas = () => {
     };
   }, []);
 
-  const cursorClass = isPanning ? 'cursor-grabbing' : tool === 'pan' ? 'cursor-grab' : 'cursor-default';
+  const cursorClass = isPanning
+    ? 'cursor-grabbing'
+    : tool === 'pan'
+      ? 'cursor-grab'
+      : tool === 'delete'
+        ? 'cursor-crosshair'
+        : 'cursor-default';
 
   return (
-    <div ref={containerRef} className={`relative h-full w-full bg-canvas ${cursorClass}`}>
+    <div
+      ref={containerRef}
+      data-canvas-surface="true"
+      className={`relative h-full w-full bg-canvas ${cursorClass}`}
+    >
       {width > 0 && height > 0 ? (
         <Stage
           ref={stageRef}
           width={width}
           height={height}
           onWheel={handleWheel}
+          onClick={handleStageClick}
+          onTap={handleStageClick}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -184,6 +206,7 @@ export const EditorCanvas = () => {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
+          {/* Grid layer (non-interactive) */}
           <Layer
             x={viewport.offsetX}
             y={viewport.offsetY}
@@ -202,13 +225,18 @@ export const EditorCanvas = () => {
               />
             ) : null}
           </Layer>
-          {/* Future layers for symbols / wires / selection will mount here. */}
+
+          {/* Symbols layer */}
           <Layer
             x={viewport.offsetX}
             y={viewport.offsetY}
             scaleX={viewport.scale}
             scaleY={viewport.scale}
-          />
+          >
+            {symbols.map((symbol) => (
+              <SymbolRenderer key={symbol.id} symbol={symbol} />
+            ))}
+          </Layer>
         </Stage>
       ) : null}
     </div>

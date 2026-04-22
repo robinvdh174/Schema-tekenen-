@@ -4,6 +4,7 @@ import { DrawingTools } from '@/components/toolbar/DrawingTools';
 import { MainToolbar } from '@/components/toolbar/MainToolbar';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { SymbolPalette } from '@/components/panels/SymbolPalette';
+import { SymbolDragGhost } from '@/components/symbols/SymbolDragGhost';
 import { StatusBar } from '@/components/ui/StatusBar';
 import { useUiStore } from '@/store/uiStore';
 import { useKeyboard } from '@/hooks/useKeyboard';
@@ -26,6 +27,7 @@ export const App = () => {
         {rightOpen ? <PropertiesPanel /> : null}
       </div>
       <StatusBar />
+      <SymbolDragGhost />
     </div>
   );
 };

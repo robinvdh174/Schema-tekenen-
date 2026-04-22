@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useEditorStore } from '@/store/editorStore';
+import { useProjectStore } from '@/store/projectStore';
 
 /**
  * Global keyboard shortcuts for the editor. Ignores events while typing in inputs.
@@ -28,6 +29,8 @@ export const useKeyboard = () => {
     const handler = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
       const ctrl = e.ctrlKey || e.metaKey;
+      const editor = useEditorStore.getState();
+      const project = useProjectStore.getState();
 
       if (ctrl && e.key === '0') {
         e.preventDefault();
@@ -45,7 +48,37 @@ export const useKeyboard = () => {
         return;
       }
 
-      if (ctrl) return; // leave other combos alone
+      if (ctrl && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        const mode = editor.mode;
+        const ids = project.getSymbols(mode).map((s) => s.id);
+        editor.setSelection(ids);
+        return;
+      }
+
+      if (!ctrl && (e.key === 'Delete' || e.key === 'Backspace')) {
+        if (editor.selectedIds.length > 0) {
+          e.preventDefault();
+          project.removeSymbols(editor.mode, editor.selectedIds);
+          editor.clearSelection();
+        }
+        return;
+      }
+
+      if (!ctrl && e.key === 'Escape') {
+        editor.clearSelection();
+        return;
+      }
+
+      if (!ctrl && e.key.toLowerCase() === 'r') {
+        if (editor.selectedIds.length > 0) {
+          e.preventDefault();
+          editor.selectedIds.forEach((id) => project.rotateSymbol(editor.mode, id, 90));
+        }
+        return;
+      }
+
+      if (ctrl) return;
 
       switch (e.key.toLowerCase()) {
         case 'v':

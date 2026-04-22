@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import type { Point } from './canvas';
 
 export type SymbolCategory =
@@ -45,9 +46,19 @@ export interface ConnectionPointDefinition {
   y: number;
 }
 
+export type SymbolVisualState = 'normal' | 'hover' | 'selected';
+
+export interface SymbolRenderProps {
+  state: SymbolVisualState;
+  properties: Record<string, PropertyValue>;
+}
+
 /**
  * Definition of a symbol type that can be placed on the canvas.
  * Lives in the palette/library, not on the canvas.
+ *
+ * `Render` returns Konva shapes drawn within the bounding box
+ * [(0,0), (width,height)] and is wrapped in a Konva.Group by the renderer.
  */
 export interface SymbolDefinition {
   type: string;
@@ -58,6 +69,7 @@ export interface SymbolDefinition {
   height: number;
   connectionPoints: ConnectionPointDefinition[];
   properties: Record<string, PropertyDefinition>;
+  Render: ComponentType<SymbolRenderProps>;
 }
 
 /**
