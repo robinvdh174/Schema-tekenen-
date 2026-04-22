@@ -96,7 +96,11 @@ export const SymbolRenderer = ({ symbol }: SymbolRendererProps) => {
         />
       ) : null}
 
-      <ConnectionPoints points={def.connectionPoints} visible={isSelected} scale={scale} />
+      <ConnectionPoints
+        symbolId={symbol.id}
+        points={def.connectionPoints}
+        visible={isSelected}
+      />
     </Group>
   );
 };

@@ -8,6 +8,7 @@ import {
   Save,
   Undo2,
 } from 'lucide-react';
+import { useHistoryStore } from '@/store/historyStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useUiStore } from '@/store/uiStore';
 import { TabSwitcher } from '@/components/ui/TabSwitcher';
@@ -18,6 +19,10 @@ export const MainToolbar = () => {
   const updateMetadata = useProjectStore((s) => s.updateMetadata);
   const toggleLeftPanel = useUiStore((s) => s.toggleLeftPanel);
   const toggleRightPanel = useUiStore((s) => s.toggleRightPanel);
+  const canUndo = useHistoryStore((s) => s.canUndo);
+  const canRedo = useHistoryStore((s) => s.canRedo);
+  const undo = useHistoryStore((s) => s.undo);
+  const redo = useHistoryStore((s) => s.redo);
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-panel-border bg-panel px-2 text-slate-100">
@@ -39,10 +44,20 @@ export const MainToolbar = () => {
           <span className="hidden md:inline">Opslaan</span>
         </button>
         <div className="toolbar-separator" />
-        <button className="btn-icon" title="Ongedaan maken (Ctrl+Z)" disabled>
+        <button
+          className="btn-icon"
+          title="Ongedaan maken (Ctrl+Z)"
+          onClick={undo}
+          disabled={!canUndo}
+        >
           <Undo2 className="h-4 w-4" />
         </button>
-        <button className="btn-icon" title="Opnieuw doen (Ctrl+Shift+Z)" disabled>
+        <button
+          className="btn-icon"
+          title="Opnieuw doen (Ctrl+Shift+Z)"
+          onClick={redo}
+          disabled={!canRedo}
+        >
           <Redo2 className="h-4 w-4" />
         </button>
       </div>

@@ -1,18 +1,23 @@
-import { Info, RotateCw, Trash2 } from 'lucide-react';
+import { Cable, Info, RotateCw, Trash2 } from 'lucide-react';
 import { useEditorStore } from '@/store/editorStore';
 import { useProjectStore } from '@/store/projectStore';
 import { getSymbolDefinition } from '@/data/symbols';
 import type { PlacedSymbol, PropertyValue } from '@/types/symbols';
 import type { EditorMode } from '@/types/canvas';
+import type { Wire, WireCableType, WireCrossSection } from '@/types/wire';
+import { WIRE_CABLE_TYPES, WIRE_CROSS_SECTIONS } from '@/types/wire';
 
 export const PropertiesPanel = () => {
   const selectedIds = useEditorStore((s) => s.selectedIds);
+  const selectedWireIds = useEditorStore((s) => s.selectedWireIds);
   const mode = useEditorStore((s) => s.mode);
   const symbols = useProjectStore((s) =>
     mode === 'eendraad' ? s.project.eendraad.symbols : s.project.situatie.symbols
   );
+  const wires = useProjectStore((s) => (mode === 'eendraad' ? s.project.eendraad.wires : []));
 
   const selectedSymbols = symbols.filter((s) => selectedIds.includes(s.id));
+  const selectedWires = wires.filter((w) => selectedWireIds.includes(w.id));
 
   return (
     <aside className="panel flex h-full w-72 shrink-0 flex-col border-l">
@@ -20,14 +25,16 @@ export const PropertiesPanel = () => {
         <h2 className="panel-heading">Eigenschappen</h2>
       </div>
 
-      {selectedSymbols.length === 0 ? (
+      {selectedSymbols.length === 0 && selectedWires.length === 0 ? (
         <EmptyState />
-      ) : selectedSymbols.length === 1 ? (
+      ) : selectedSymbols.length === 1 && selectedWires.length === 0 ? (
         <SymbolEditor symbol={selectedSymbols[0]} mode={mode} />
+      ) : selectedWires.length === 1 && selectedSymbols.length === 0 ? (
+        <WireEditor wire={selectedWires[0]} mode={mode} />
       ) : (
         <div className="p-3 text-xs text-slate-400">
-          {selectedSymbols.length} symbolen geselecteerd. Selecteer 1 symbool om eigenschappen
-          te bewerken.
+          {selectedSymbols.length + selectedWires.length} items geselecteerd. Selecteer 1 symbool of
+          draad om eigenschappen te bewerken.
         </div>
       )}
     </aside>
@@ -164,6 +171,104 @@ const ReadOnlyField = ({ label, value }: { label: string; value: string }) => (
     </p>
   </div>
 );
+
+const WireEditor = ({ wire, mode }: { wire: Wire; mode: EditorMode }) => {
+  const updateWire = useProjectStore((s) => s.updateWire);
+  const removeWires = useProjectStore((s) => s.removeWires);
+  const symbols = useProjectStore((s) =>
+    mode === 'eendraad' ? s.project.eendraad.symbols : s.project.situatie.symbols
+  );
+  const setWireSelection = useEditorStore((s) => s.setWireSelection);
+
+  const fromSym = symbols.find((s) => s.id === wire.from.symbolId);
+  const toSym = symbols.find((s) => s.id === wire.to.symbolId);
+  const fromName = fromSym ? getSymbolDefinition(fromSym.type)?.name ?? fromSym.type : '—';
+  const toName = toSym ? getSymbolDefinition(toSym.type)?.name ?? toSym.type : '—';
+
+  const baseClass =
+    'w-full rounded-md border border-panel-border bg-panel-dark/60 px-2 py-1.5 text-sm text-slate-100 focus:border-accent focus:outline-none';
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="panel-section">
+        <p className="text-[11px] uppercase tracking-wider text-slate-500">Verbinding</p>
+        <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-slate-100">
+          <Cable className="h-4 w-4 text-accent" />
+          Draad
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 text-xs">
+        <div className="mb-4 grid grid-cols-1 gap-3">
+          <ReadOnlyField label="Van" value={fromName} />
+          <ReadOnlyField label="Naar" value={toName} />
+        </div>
+
+        <div className="space-y-3">
+          <p className="panel-heading">Kabel</p>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-medium text-slate-400">Doorsnede</span>
+            <select
+              className={baseClass}
+              value={wire.crossSection}
+              onChange={(e) =>
+                updateWire(mode, wire.id, {
+                  crossSection: e.target.value as WireCrossSection,
+                })
+              }
+            >
+              {WIRE_CROSS_SECTIONS.map((cs) => (
+                <option key={cs} value={cs}>
+                  {cs} mm²
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-medium text-slate-400">Kabeltype</span>
+            <select
+              className={baseClass}
+              value={wire.cableType}
+              onChange={(e) =>
+                updateWire(mode, wire.id, { cableType: e.target.value as WireCableType })
+              }
+            >
+              {WIRE_CABLE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-medium text-slate-400">Label (optioneel)</span>
+            <input
+              className={baseClass}
+              type="text"
+              value={wire.label ?? ''}
+              placeholder="Bv. Kring 3"
+              onChange={(e) => updateWire(mode, wire.id, { label: e.target.value })}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="panel-section flex items-center gap-1 border-t">
+        <button
+          onClick={() => {
+            removeWires(mode, [wire.id]);
+            setWireSelection([]);
+          }}
+          className="btn-ghost !text-red-300 hover:!bg-red-500/10"
+          title="Verwijder (Delete)"
+        >
+          <Trash2 className="h-4 w-4" />
+          <span>Verwijder draad</span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
 interface PropertyFieldProps {
   propKey: string;

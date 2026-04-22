@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { EditorMode, Point } from '@/types/canvas';
 import type { Project } from '@/types/project';
 import type { PlacedSymbol, PropertyValue } from '@/types/symbols';
+import type { Wire } from '@/types/wire';
 import { createId } from '@/utils/id';
 
 const createEmptyProject = (): Project => {
@@ -39,6 +40,12 @@ interface ProjectState {
   rotateSymbol: (mode: EditorMode, id: string, delta: number) => void;
   removeSymbols: (mode: EditorMode, ids: string[]) => void;
   getSymbols: (mode: EditorMode) => PlacedSymbol[];
+
+  addWire: (mode: EditorMode, wire: Wire) => void;
+  updateWire: (mode: EditorMode, id: string, updates: Partial<Wire>) => void;
+  removeWires: (mode: EditorMode, ids: string[]) => void;
+  removeWiresTouching: (mode: EditorMode, symbolIds: string[]) => void;
+  getWires: (mode: EditorMode) => Wire[];
 }
 
 const modeKey = (mode: EditorMode): 'eendraad' | 'situatie' =>
@@ -174,4 +181,67 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }),
 
   getSymbols: (mode) => get().project[modeKey(mode)].symbols,
+
+  addWire: (mode, wire) =>
+    set((state) => {
+      if (mode !== 'eendraad') return state;
+      const section = state.project.eendraad;
+      return {
+        project: bumpTimestamp({
+          ...state.project,
+          eendraad: { ...section, wires: [...section.wires, wire] },
+        }),
+        dirty: true,
+      };
+    }),
+
+  updateWire: (mode, id, updates) =>
+    set((state) => {
+      if (mode !== 'eendraad') return state;
+      const section = state.project.eendraad;
+      return {
+        project: bumpTimestamp({
+          ...state.project,
+          eendraad: {
+            ...section,
+            wires: section.wires.map((w) => (w.id === id ? { ...w, ...updates } : w)),
+          },
+        }),
+        dirty: true,
+      };
+    }),
+
+  removeWires: (mode, ids) =>
+    set((state) => {
+      if (mode !== 'eendraad' || ids.length === 0) return state;
+      const section = state.project.eendraad;
+      const idSet = new Set(ids);
+      return {
+        project: bumpTimestamp({
+          ...state.project,
+          eendraad: { ...section, wires: section.wires.filter((w) => !idSet.has(w.id)) },
+        }),
+        dirty: true,
+      };
+    }),
+
+  removeWiresTouching: (mode, symbolIds) =>
+    set((state) => {
+      if (mode !== 'eendraad' || symbolIds.length === 0) return state;
+      const section = state.project.eendraad;
+      const idSet = new Set(symbolIds);
+      const wires = section.wires.filter(
+        (w) => !idSet.has(w.from.symbolId) && !idSet.has(w.to.symbolId)
+      );
+      if (wires.length === section.wires.length) return state;
+      return {
+        project: bumpTimestamp({
+          ...state.project,
+          eendraad: { ...section, wires },
+        }),
+        dirty: true,
+      };
+    }),
+
+  getWires: (mode) => (mode === 'eendraad' ? get().project.eendraad.wires : []),
 }));

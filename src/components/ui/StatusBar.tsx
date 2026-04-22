@@ -19,6 +19,13 @@ export const StatusBar = () => {
   const scale = useEditorStore((s) => s.viewport.scale);
   const gridSize = useEditorStore((s) => s.gridSize);
   const snapEnabled = useEditorStore((s) => s.snapEnabled);
+  const wireStart = useEditorStore((s) => s.wireStart);
+
+  const wireHint = tool === 'wire' && wireStart
+    ? 'Kies tweede aansluitpunt (Esc om te annuleren)'
+    : tool === 'wire'
+      ? 'Kies eerste aansluitpunt'
+      : null;
 
   return (
     <footer className="flex h-7 shrink-0 items-center justify-between border-t border-panel-border bg-panel px-3 text-[11px] text-slate-400">
@@ -35,6 +42,12 @@ export const StatusBar = () => {
         <span>
           Raster: <span className="text-slate-200">{gridSize}px</span>
         </span>
+        {wireHint ? (
+          <span className="text-accent">
+            <span className="mr-1">▸</span>
+            {wireHint}
+          </span>
+        ) : null}
       </div>
       <div className="flex items-center gap-4 tabular-nums">
         {cursor ? (

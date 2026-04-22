@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { EditorMode, EditorTool, ViewportState } from '@/types/canvas';
 import { DEFAULT_GRID_SIZE, MAX_ZOOM, MIN_ZOOM } from '@/types/canvas';
+import type { WireEndpoint } from '@/types/wire';
 import { clamp } from '@/utils/geometry';
 
 interface EditorState {
@@ -12,6 +13,9 @@ interface EditorState {
   snapEnabled: boolean;
   cursor: { x: number; y: number } | null;
   selectedIds: string[];
+  selectedWireIds: string[];
+  /** First endpoint picked in the wire drawing tool, waiting for the second. */
+  wireStart: WireEndpoint | null;
 
   setMode: (mode: EditorMode) => void;
   setTool: (tool: EditorTool) => void;
@@ -25,6 +29,8 @@ interface EditorState {
   addToSelection: (id: string) => void;
   removeFromSelection: (id: string) => void;
   clearSelection: () => void;
+  setWireSelection: (ids: string[]) => void;
+  setWireStart: (endpoint: WireEndpoint | null) => void;
 }
 
 const initialViewport: ViewportState = { offsetX: 0, offsetY: 0, scale: 1 };
@@ -38,9 +44,11 @@ export const useEditorStore = create<EditorState>((set) => ({
   snapEnabled: true,
   cursor: null,
   selectedIds: [],
+  selectedWireIds: [],
+  wireStart: null,
 
-  setMode: (mode) => set({ mode, selectedIds: [] }),
-  setTool: (tool) => set({ tool }),
+  setMode: (mode) => set({ mode, selectedIds: [], selectedWireIds: [], wireStart: null }),
+  setTool: (tool) => set({ tool, wireStart: null }),
   setViewport: (viewport) =>
     set((state) => ({ viewport: { ...state.viewport, ...viewport } })),
 
@@ -72,5 +80,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     })),
   removeFromSelection: (id) =>
     set((s) => ({ selectedIds: s.selectedIds.filter((x) => x !== id) })),
-  clearSelection: () => set({ selectedIds: [] }),
+  clearSelection: () => set({ selectedIds: [], selectedWireIds: [] }),
+  setWireSelection: (selectedWireIds) => set({ selectedWireIds }),
+  setWireStart: (wireStart) => set({ wireStart }),
 }));

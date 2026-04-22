@@ -7,6 +7,8 @@ import { useProjectStore } from '@/store/projectStore';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { Grid } from './Grid';
 import { SymbolRenderer } from '@/components/symbols/SymbolRenderer';
+import { WireRenderer } from '@/components/symbols/WireRenderer';
+import { WirePreview } from '@/components/symbols/WirePreview';
 import { clamp } from '@/utils/geometry';
 
 /**
@@ -31,6 +33,7 @@ export const EditorCanvas = () => {
   const symbols = useProjectStore((s) =>
     mode === 'eendraad' ? s.project.eendraad.symbols : s.project.situatie.symbols
   );
+  const wires = useProjectStore((s) => (mode === 'eendraad' ? s.project.eendraad.wires : []));
 
   const [isPanning, setIsPanning] = useState(false);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
@@ -59,11 +62,16 @@ export const EditorCanvas = () => {
     [setViewport, viewport.offsetX, viewport.offsetY, zoomAt]
   );
 
+  const setWireStart = useEditorStore((s) => s.setWireStart);
+
   const handleStageClick = useCallback(
     (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
-      if (e.target === e.target.getStage()) clearSelection();
+      if (e.target === e.target.getStage()) {
+        clearSelection();
+        setWireStart(null);
+      }
     },
-    [clearSelection]
+    [clearSelection, setWireStart]
   );
 
   const handlePointerDown = useCallback(
@@ -224,6 +232,19 @@ export const EditorCanvas = () => {
                 offsetY={viewport.offsetY}
               />
             ) : null}
+          </Layer>
+
+          {/* Wires layer (below symbols so endpoints sit on top) */}
+          <Layer
+            x={viewport.offsetX}
+            y={viewport.offsetY}
+            scaleX={viewport.scale}
+            scaleY={viewport.scale}
+          >
+            {wires.map((wire) => (
+              <WireRenderer key={wire.id} wire={wire} />
+            ))}
+            <WirePreview />
           </Layer>
 
           {/* Symbols layer */}
