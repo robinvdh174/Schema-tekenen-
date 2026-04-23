@@ -3,6 +3,7 @@ import { beveiligingSymbols } from './beveiliging';
 import { diversenSymbols } from './diversen';
 import { schakelaarSymbols } from './schakelaars';
 import { stopcontactSymbols } from './stopcontacten';
+import { toestelSymbols } from './toestellen';
 import { verlichtingSymbols } from './verlichting';
 import { voedingSymbols } from './voeding';
 
@@ -12,6 +13,7 @@ export const ALL_SYMBOLS: SymbolDefinition[] = [
   ...stopcontactSymbols,
   ...schakelaarSymbols,
   ...verlichtingSymbols,
+  ...toestelSymbols,
   ...diversenSymbols,
 ];
 

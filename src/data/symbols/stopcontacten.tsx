@@ -1,320 +1,220 @@
-import { Arc, Circle, Group, Line, Rect, Text } from 'react-konva';
+import { Circle, Group, Line, Rect, Text } from 'react-konva';
 import type { SymbolDefinition, SymbolRenderProps } from '@/types/symbols';
-import {
-  FILL_BG,
-  FONT_FAMILY,
-  STROKE_WIDTH,
-  STROKE_WIDTH_MAIN,
-  STROKE_WIDTH_THIN,
-  strokeFor,
-} from './draw';
+import { FILL_BG, FONT_FAMILY, STROKE_WIDTH, STROKE_WIDTH_MAIN, strokeFor } from './draw';
 
-const IP_OPTIONS = ['IP20', 'IP21', 'IP44', 'IP54', 'IP55', 'IP65'];
-const APPL_AMPS = ['13A', '16A', '20A', '32A'];
+/* =========================================================================
+ * Contactdoos (stopcontact) — Trikker conventies
+ *
+ * Het basis-symbool is één halve cirkel met diameter bovenaan en bolling
+ * naar onder, hangend aan een korte aansluitlijn van bovenaf.
+ *
+ * Parameters die het uiterlijk wijzigen:
+ *   polen           - '1P' | '3P' | '3P+N' → 0 / 3 / 4 schuine streepjes
+ *   nulgeleider     - bolletje (•) op de aansluitlijn na de streepjes
+ *   pe              - verticale streep BINNEN de halve cirkel (PE)
+ *   halfwaterdicht  - kleine "h" boven de aansluitlijn
+ *   schakelaar      - schuine streep van een schakelaarcontact erboven
+ *   tekst           - label rechts naast (bv. "32A")
+ *   aantal          - 1, 2 of 3 — meerdere halve cirkels gestapeld
+ *   in_verdeelbord  - vierkant kader rond het symbool
+ *   transformator   - cirkeltje aan de zijkant
+ * ========================================================================= */
 
-/* Base: halve cirkel stopcontact aan einde van kringlijn
-   Bounding box 40x40. Aansluitpunt top center (x=20, y=0).
-   Halve cirkel opent naar boven, met verticale lijn van top naar middelpunt. */
-const HalveCirkel = ({
-  s,
-  centerY,
-  radius = 14,
-  earthDash = true,
-}: {
-  s: string;
-  centerY: number;
-  radius?: number;
-  earthDash?: boolean;
-}) => (
-  <>
-    <Line points={[20, 0, 20, centerY]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-    <Arc
-      x={20}
-      y={centerY}
-      innerRadius={radius}
-      outerRadius={radius}
-      angle={180}
-      rotation={180}
-      stroke={s}
-      strokeWidth={STROKE_WIDTH}
-      fill={FILL_BG}
-    />
-    {/* basislijn diameter */}
-    <Line
-      points={[20 - radius, centerY, 20 + radius, centerY]}
-      stroke={s}
-      strokeWidth={STROKE_WIDTH}
-    />
-    {/* Aarding: korte verticale streep in de halve cirkel */}
-    <Line
-      points={[20, centerY - radius + 2, 20, centerY - 2]}
-      stroke={s}
-      strokeWidth={STROKE_WIDTH_THIN}
-      dash={earthDash ? undefined : [2, 2]}
-    />
-  </>
-);
+const POL_OPTIONS = ['1P', '3P', '3P+N'];
 
-const StopcontactEnkelRender = ({ state, properties }: SymbolRenderProps) => {
+/** Genereer een halve cirkel (diameter boven, bolling onder) als Konva Line points. */
+const halfCircleDownPoints = (cx: number, cy: number, r: number, segments = 24): number[] => {
+  const out: number[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const angle = Math.PI - Math.PI * t; // π → 0 (links → rechts via boven)
+    out.push(cx - r * Math.cos(angle));
+    out.push(cy + r * Math.sin(angle));
+  }
+  return out;
+};
+
+const ContactdoosRender = ({ state, properties }: SymbolRenderProps) => {
   const s = strokeFor(state);
-  const kinderveilig = Boolean(properties.kinderveilig?.value ?? true);
+  const polen = String(properties.polen?.value ?? '1P');
+  const nulgeleider = Boolean(properties.nulgeleider?.value ?? false);
+  const pe = Boolean(properties.pe?.value ?? true);
+  const halfwaterdicht = Boolean(properties.halfwaterdicht?.value ?? false);
+  const schakelaar = Boolean(properties.schakelaar?.value ?? false);
+  const tekst = String(properties.tekst?.value ?? '');
+  const aantal = Math.max(1, Math.min(3, Number(properties.aantal?.value ?? 1)));
+  const inVerdeelbord = Boolean(properties.in_verdeelbord?.value ?? false);
+  const transformator = Boolean(properties.transformator?.value ?? false);
+
+  const cx = 20;
+  const r = 10;
+  const aansluitTop = 0;
+  const halfCircleY = 24; // y-positie van diameter (= top van halve cirkel)
+
+  // Aantal schuine streepjes op de aansluitlijn voor fase-aanduiding
+  const fasenCount = polen === '3P' || polen === '3P+N' ? 3 : 0;
+  const slashSpacing = 3;
+  const slashLen = 5;
+
   return (
     <Group>
-      <HalveCirkel s={s} centerY={20} />
-      {kinderveilig ? (
-        <Line points={[15, 16, 25, 16]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
+      {/* Aansluitlijn van bovenaf */}
+      <Line points={[cx, aansluitTop, cx, halfCircleY]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+
+      {/* Halfwaterdicht: kleine "h" links naast de aansluitlijn */}
+      {halfwaterdicht ? (
+        <Text
+          x={cx - 14}
+          y={2}
+          text="h"
+          fontFamily={FONT_FAMILY}
+          fontStyle="600"
+          fontSize={10}
+          fill={s}
+        />
       ) : null}
-    </Group>
-  );
-};
 
-const StopcontactDubbelRender = ({ state, properties }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  const kinderveilig = Boolean(properties.kinderveilig?.value ?? true);
-  return (
-    <Group>
-      <HalveCirkel s={s} centerY={20} />
-      {/* Tweede streep aan de bovenzijde = 2x contact */}
-      <Line points={[20, 32, 20, 38]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Text
-        x={0}
-        y={34}
-        width={40}
-        text="2"
-        align="center"
-        fontFamily={FONT_FAMILY}
-        fontSize={10}
-        fontStyle="700"
-        fill={s}
-      />
-      {kinderveilig ? (
-        <Line points={[15, 16, 25, 16]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
+      {/* Schakelaar ingebouwd: schuine streep voor een schakelaarcontact bovenop */}
+      {schakelaar ? (
+        <Line points={[cx, 14, cx + 9, 6]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
       ) : null}
-    </Group>
-  );
-};
 
-const StopcontactDrievoudigRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <Group>
-      <HalveCirkel s={s} centerY={20} />
-      <Text
-        x={0}
-        y={34}
-        width={40}
-        text="3"
-        align="center"
-        fontFamily={FONT_FAMILY}
-        fontSize={10}
-        fontStyle="700"
-        fill={s}
-      />
-    </Group>
-  );
-};
+      {/* Schuine streepjes (fasen) */}
+      {Array.from({ length: fasenCount }).map((_, i) => {
+        const xCenter = cx - ((fasenCount - 1) * slashSpacing) / 2 + i * slashSpacing;
+        const yCenter = halfCircleY - 10;
+        return (
+          <Line
+            key={`fase-${i}`}
+            points={[xCenter - slashLen / 2, yCenter + slashLen / 2, xCenter + slashLen / 2, yCenter - slashLen / 2]}
+            stroke={s}
+            strokeWidth={STROKE_WIDTH}
+          />
+        );
+      })}
+      {/* Nulgeleider (•) na de schuine streepjes */}
+      {(nulgeleider || polen === '3P+N') ? (
+        <Circle
+          x={cx + (fasenCount > 0 ? (fasenCount * slashSpacing) / 2 + 3 : 4)}
+          y={halfCircleY - 10}
+          radius={1.6}
+          fill={s}
+        />
+      ) : null}
 
-const StopcontactSchakelaarRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <Group>
-      <HalveCirkel s={s} centerY={20} />
-      {/* Schakelaar-streepje boven */}
-      <Circle x={20} y={4} radius={2} stroke={s} strokeWidth={STROKE_WIDTH_THIN} fill={FILL_BG} />
-      <Line points={[20, 4, 28, 10]} stroke={s} strokeWidth={STROKE_WIDTH} />
-    </Group>
-  );
-};
+      {/* Transformator ingebouwd: cirkeltje rechts van de aansluitlijn */}
+      {transformator ? (
+        <Circle x={cx + 7} y={halfCircleY - 8} radius={3.5} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      ) : null}
 
-const StopcontactWaterdichtRender = ({ state, properties }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  const ip = String(properties.ip?.value ?? 'IP44');
-  return (
-    <Group>
-      <HalveCirkel s={s} centerY={22} />
-      {/* Waterdicht: extra omkadering */}
-      <Rect
-        x={2}
-        y={8}
-        width={36}
-        height={30}
-        stroke={s}
-        strokeWidth={STROKE_WIDTH_THIN}
-        fill="transparent"
-      />
-      <Text
-        x={0}
-        y={40}
-        width={40}
-        text={ip}
-        align="center"
-        fontFamily={FONT_FAMILY}
-        fontSize={9}
-        fill={s}
-      />
-    </Group>
-  );
-};
+      {/* Halve cirkel(s) - diameter boven, bolling onder */}
+      {Array.from({ length: aantal }).map((_, i) => {
+        const cy = halfCircleY + i * 8;
+        return (
+          <Line
+            key={`half-${i}`}
+            points={halfCircleDownPoints(cx, cy, r)}
+            stroke={s}
+            strokeWidth={STROKE_WIDTH}
+            tension={0}
+            closed={false}
+          />
+        );
+      })}
+      {/* Diameter (horizontaal lijntje bovenaan eerste halve cirkel) */}
+      <Line points={[cx - r, halfCircleY, cx + r, halfCircleY]} stroke={s} strokeWidth={STROKE_WIDTH} />
 
-/** Vast aangesloten toestel: vierkant met letter-label (K=kookplaat, D=droogkast, ...) */
-const makeApplianceRender =
-  (letter: string, labelFallback: string) =>
-  ({ state, properties }: SymbolRenderProps) => {
-    const s = strokeFor(state);
-    const amp = String(properties.amperage?.value ?? labelFallback);
-    return (
-      <Group>
-        <Line points={[20, 0, 20, 6]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-        <Rect
-          x={4}
-          y={6}
-          width={32}
-          height={28}
+      {/* PE-streep binnen halve cirkel */}
+      {pe ? (
+        <Line
+          points={[cx, halfCircleY + 1, cx, halfCircleY + r - 1]}
           stroke={s}
           strokeWidth={STROKE_WIDTH}
-          fill={FILL_BG}
         />
+      ) : null}
+
+      {/* In verdeelbord: vierkant kader rond het symbool */}
+      {inVerdeelbord ? (
+        <Rect
+          x={cx - r - 3}
+          y={halfCircleY - 4}
+          width={2 * r + 6}
+          height={r + 8 + (aantal - 1) * 8}
+          stroke={s}
+          strokeWidth={STROKE_WIDTH}
+          fill="transparent"
+        />
+      ) : null}
+
+      {/* Label rechts (bv. "32A") */}
+      {tekst ? (
         <Text
-          x={4}
-          y={10}
-          width={32}
-          text={letter}
-          align="center"
+          x={cx + r + 4}
+          y={halfCircleY + 2}
+          text={tekst}
           fontFamily={FONT_FAMILY}
-          fontSize={14}
-          fontStyle="700"
+          fontSize={10}
+          fontStyle="600"
           fill={s}
         />
-        <Text
-          x={0}
-          y={36}
-          width={40}
-          text={amp}
-          align="center"
-          fontFamily={FONT_FAMILY}
-          fontSize={9}
-          fill={s}
-        />
-      </Group>
-    );
-  };
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Communicatiecontactdoos (RJ45) ------------------------------------- */
+const ContactdoosCommunicatieRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const tekst = String(properties.tekst?.value ?? 'UTP Cat6');
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {/* Rechthoekige plug-vorm */}
+      <Line points={[10, 14, 30, 14]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[10, 14, 10, 24]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[30, 14, 30, 24]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[10, 24, 30, 24]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      {tekst ? (
+        <Text x={36} y={14} text={tekst} fontFamily={FONT_FAMILY} fontSize={10} fill={s} />
+      ) : null}
+    </Group>
+  );
+};
 
 export const stopcontactSymbols: SymbolDefinition[] = [
   {
-    type: 'stopcontact_enkel',
+    type: 'contactdoos',
     category: 'stopcontacten',
-    name: 'Stopcontact enkel',
-    description: 'Enkel stopcontact 2P+A',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      kinderveilig: { label: 'Kinderveilig', type: 'boolean', defaultValue: true },
-      opbouw: { label: 'Opbouw', type: 'boolean', defaultValue: false },
-    },
-    Render: StopcontactEnkelRender,
-  },
-  {
-    type: 'stopcontact_dubbel',
-    category: 'stopcontacten',
-    name: 'Stopcontact dubbel',
-    description: 'Dubbel stopcontact 2P+A',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      kinderveilig: { label: 'Kinderveilig', type: 'boolean', defaultValue: true },
-      opbouw: { label: 'Opbouw', type: 'boolean', defaultValue: false },
-    },
-    Render: StopcontactDubbelRender,
-  },
-  {
-    type: 'stopcontact_drievoudig',
-    category: 'stopcontacten',
-    name: 'Stopcontact drievoudig',
-    description: 'Drievoudig stopcontact',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      kinderveilig: { label: 'Kinderveilig', type: 'boolean', defaultValue: true },
-    },
-    Render: StopcontactDrievoudigRender,
-  },
-  {
-    type: 'stopcontact_schakelaar',
-    category: 'stopcontacten',
-    name: 'Stopcontact met schakelaar',
-    description: 'Geschakeld stopcontact',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {},
-    Render: StopcontactSchakelaarRender,
-  },
-  {
-    type: 'stopcontact_waterdicht',
-    category: 'stopcontacten',
-    name: 'Stopcontact waterdicht',
-    description: 'IP44 of hoger',
+    name: 'Contactdoos',
+    description: 'Stopcontact 2P+A',
     width: 40,
     height: 50,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
     properties: {
-      ip: { label: 'IP-waarde', type: 'select', defaultValue: 'IP44', options: IP_OPTIONS },
+      polen: { label: 'Polen', type: 'select', defaultValue: '1P', options: POL_OPTIONS },
+      nulgeleider: { label: 'Nulgeleider (N)', type: 'boolean', defaultValue: false },
+      pe: { label: 'Beschermingsgeleider (PE)', type: 'boolean', defaultValue: true },
+      halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean', defaultValue: false },
+      schakelaar: { label: 'Schakelaar ingebouwd', type: 'boolean', defaultValue: false },
+      transformator: { label: 'Transformator ingebouwd', type: 'boolean', defaultValue: false },
+      in_verdeelbord: { label: 'In verdeelbord', type: 'boolean', defaultValue: false },
+      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
+      tekst: { label: 'Tekst', type: 'string', defaultValue: '' },
+      kring: { label: 'Kring', type: 'string', defaultValue: '' },
     },
-    Render: StopcontactWaterdichtRender,
+    Render: ContactdoosRender,
   },
   {
-    type: 'aansluiting_kookfornuis',
+    type: 'contactdoos_communicatie',
     category: 'stopcontacten',
-    name: 'Kookfornuis aansluiting',
-    description: 'Vaste aansluiting kookplaat',
+    name: 'Contactdoos communicatie',
+    description: 'Data / netwerk / RJ45',
     width: 40,
-    height: 46,
+    height: 30,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
     properties: {
-      amperage: { label: 'Amperage', type: 'select', defaultValue: '32A', options: APPL_AMPS },
+      tekst: { label: 'Tekst', type: 'string', defaultValue: 'UTP Cat6' },
     },
-    Render: makeApplianceRender('K', '32A'),
-  },
-  {
-    type: 'aansluiting_droogkast',
-    category: 'stopcontacten',
-    name: 'Droogkast aansluiting',
-    description: 'Vaste aansluiting droogkast',
-    width: 40,
-    height: 46,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      amperage: { label: 'Amperage', type: 'select', defaultValue: '16A', options: APPL_AMPS },
-    },
-    Render: makeApplianceRender('D', '16A'),
-  },
-  {
-    type: 'aansluiting_wasmachine',
-    category: 'stopcontacten',
-    name: 'Wasmachine aansluiting',
-    description: 'Specifiek circuit wasmachine',
-    width: 40,
-    height: 46,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      amperage: { label: 'Amperage', type: 'select', defaultValue: '16A', options: APPL_AMPS },
-    },
-    Render: makeApplianceRender('W', '16A'),
-  },
-  {
-    type: 'aansluiting_vaatwasser',
-    category: 'stopcontacten',
-    name: 'Vaatwasser aansluiting',
-    description: 'Specifiek circuit vaatwasser',
-    width: 40,
-    height: 46,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      amperage: { label: 'Amperage', type: 'select', defaultValue: '16A', options: APPL_AMPS },
-    },
-    Render: makeApplianceRender('V', '16A'),
+    Render: ContactdoosCommunicatieRender,
   },
 ];

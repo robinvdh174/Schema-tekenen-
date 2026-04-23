@@ -1,167 +1,180 @@
 import { Circle, Group, Line, Text } from 'react-konva';
 import type { SymbolDefinition, SymbolRenderProps } from '@/types/symbols';
-import {
-  FILL_BG,
-  FONT_FAMILY,
-  STROKE_WIDTH,
-  STROKE_WIDTH_MAIN,
-  STROKE_WIDTH_THIN,
-  strokeFor,
-} from './draw';
+import { FILL_BG, FONT_FAMILY, STROKE_WIDTH, STROKE_WIDTH_MAIN, strokeFor } from './draw';
 
-/**
- * Schakelaars in AREI eendraadschema: diagonale lijn tussen twee contactpunten.
- * Bounding box 40x40, ingang bovenaan (20,0), uitgang onderaan (20,40).
- */
-const makeSchakelaarRender =
-  (cijfer?: string) =>
-  ({ state }: SymbolRenderProps) => {
-    const s = strokeFor(state);
-    return (
-      <Group>
-        <Line points={[20, 0, 20, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-        <Circle x={20} y={12} radius={2} fill={s} />
-        {/* Diagonale schakelaarlijn */}
-        <Line points={[20, 12, 32, 28]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-        <Circle x={20} y={30} radius={2} fill={s} />
-        <Line points={[20, 30, 20, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-        {cijfer ? (
-          <Text
-            x={4}
-            y={14}
-            text={cijfer}
-            fontFamily={FONT_FAMILY}
-            fontSize={10}
-            fontStyle="600"
-            fill={s}
-          />
-        ) : null}
-      </Group>
-    );
-  };
+/* =========================================================================
+ * Schakelaars — Trikker conventies
+ *
+ * Basis: korte verticale aansluitlijn met een schuine streep aan het einde
+ * (lijkt op een hand-schakelaar). Varianten verschillen door extra symbool
+ * boven of naast de schuine streep.
+ * ========================================================================= */
 
-/* Dubbelpolige: twee parallelle schuine lijnen */
-const DubbelpoligRender = ({ state }: SymbolRenderProps) => {
+const TYPE_OPTIONS = [
+  'Enkelpolig',
+  'Dubbelpolig',
+  'Wissel',
+  'Dubbele wissel',
+  'Kruis',
+  'Dubbele aansteking',
+  'Dimmer',
+  'Drukknop',
+  'Rolluikschakelaar',
+  'Trekschakelaar',
+];
+
+const POL_OPTIONS = ['—', '2P', '3P', '4P'];
+
+const SchakelaarRender = ({ state, properties }: SymbolRenderProps) => {
   const s = strokeFor(state);
+  const type = String(properties.type?.value ?? 'Enkelpolig');
+  const polen = String(properties.polen?.value ?? '—');
+  const halfwaterdicht = Boolean(properties.halfwaterdicht?.value ?? false);
+  const dimmer = Boolean(properties.dimmer?.value ?? false);
+  const verklikker = Boolean(properties.verklikker?.value ?? false);
+  const adres = String(properties.adres?.value ?? '');
+  const aantalKnoppen = Number(properties.aantal_knoppen?.value ?? 0);
+
+  const cx = 20;
+  const yTop = 0;
+  const yPivot = 26;
+
+  // Default = enkelpolig (één schuine streep) van pivot omhoog naar rechts
+  const slashEnd = { x: cx + 10, y: yPivot - 12 };
+
   return (
     <Group>
-      <Line points={[14, 0, 14, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Line points={[26, 0, 26, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={14} y={12} radius={2} fill={s} />
-      <Circle x={26} y={12} radius={2} fill={s} />
-      <Line points={[14, 12, 26, 28]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Line points={[26, 12, 38, 28]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={14} y={30} radius={2} fill={s} />
-      <Circle x={26} y={30} radius={2} fill={s} />
-      <Line points={[14, 30, 14, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Line points={[26, 30, 26, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-    </Group>
-  );
-};
+      {/* Aansluitlijn van bovenaf */}
+      <Line points={[cx, yTop, cx, yPivot]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
 
-/* Dimmer: schakelaar met driehoek-symbool */
-const DimmerRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <Group>
-      <Line points={[20, 0, 20, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={12} radius={2} fill={s} />
-      <Line points={[20, 12, 32, 28]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={30} radius={2} fill={s} />
-      <Line points={[20, 30, 20, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      {/* Dimmer-pijl */}
-      <Line points={[4, 26, 12, 14]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[4, 26, 9, 22]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[4, 26, 4, 20]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-    </Group>
-  );
-};
+      {/* Halfwaterdicht "h" links van aansluitlijn */}
+      {halfwaterdicht ? (
+        <Text x={cx - 12} y={2} text="h" fontFamily={FONT_FAMILY} fontStyle="600" fontSize={10} fill={s} />
+      ) : null}
 
-/* Bewegingsmelder: schakelaar met "M" */
-const BewegingsmelderRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <Group>
-      <Line points={[20, 0, 20, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={20} radius={10} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Text
-        x={10}
-        y={14}
-        width={20}
-        text="M"
-        align="center"
-        fontFamily={FONT_FAMILY}
-        fontSize={12}
-        fontStyle="700"
-        fill={s}
-      />
-      <Line points={[20, 30, 20, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-    </Group>
-  );
-};
+      {/* Pivot-puntje */}
+      <Circle x={cx} y={yPivot} radius={1.6} fill={s} />
 
-/* Schemerschakelaar: zon-symbool */
-const SchemerschakelaarRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <Group>
-      <Line points={[20, 0, 20, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={12} radius={2} fill={s} />
-      <Line points={[20, 12, 32, 28]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={30} radius={2} fill={s} />
-      <Line points={[20, 30, 20, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      {/* Pijlen naar binnen (lichtsensor) */}
-      <Line points={[10, 10, 14, 14]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[14, 14, 12, 12]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[10, 10, 12, 10]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[4, 14, 10, 14]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[4, 22, 10, 18]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-    </Group>
-  );
-};
+      {/* Type-specifieke contact-renderingen */}
+      {type === 'Enkelpolig' ? (
+        <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      ) : null}
 
-/* Rolluikschakelaar: twee pijlen op/neer */
-const RolluikschakelaarRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <Group>
-      <Line points={[20, 0, 20, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={12} radius={2} fill={s} />
-      <Line points={[20, 12, 32, 28]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={30} radius={2} fill={s} />
-      <Line points={[20, 30, 20, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      {/* Pijl omhoog */}
-      <Line points={[8, 12, 8, 20]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[8, 12, 5, 15]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[8, 12, 11, 15]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      {/* Pijl omlaag */}
-      <Line points={[8, 22, 8, 30]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[8, 30, 5, 27]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[8, 30, 11, 27]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-    </Group>
-  );
-};
+      {type === 'Dubbelpolig' ? (
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx + 3, yPivot - 1, slashEnd.x + 3, slashEnd.y - 1]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
 
-/* Drukknop: cirkel met centrale lijn */
-const DrukknopRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <Group>
-      <Line points={[20, 0, 20, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={20} radius={10} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Line points={[12, 20, 28, 20]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Line points={[20, 20, 20, 30]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Line points={[20, 30, 20, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {type === 'Wissel' ? (
+        // Schuine streep + dwars-streepje aan het uiteinde (driepoot)
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[slashEnd.x - 2, slashEnd.y - 4, slashEnd.x + 4, slashEnd.y + 2]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Dubbele wissel' ? (
+        <>
+          <Line points={[cx, yPivot, cx + 8, yPivot - 8]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx, yPivot, cx - 8, yPivot - 8]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 6, yPivot - 4, cx + 6, yPivot - 12]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Kruis' ? (
+        // Twee gekruiste schuine strepen (X)
+        <>
+          <Line points={[cx - 8, yPivot - 8, cx + 8, yPivot - 8 + 0]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 8, yPivot - 4, cx + 8, yPivot - 12]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 8, yPivot - 12, cx + 8, yPivot - 4]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+        </>
+      ) : null}
+
+      {type === 'Dubbele aansteking' ? (
+        // Twee schuine strepen die uiteenwaaieren vanuit pivot
+        <>
+          <Line points={[cx, yPivot, cx + 10, yPivot - 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx, yPivot, cx - 10, yPivot - 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+        </>
+      ) : null}
+
+      {type === 'Dimmer' ? (
+        // Schuine streep + driehoek-pijl bij pivot
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 8, yPivot - 4, cx, yPivot - 12]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, yPivot - 4, cx - 5, yPivot - 8]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, yPivot - 4, cx - 8, yPivot - 8]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Drukknop' ? (
+        // Open cirkeltje boven de aansluitlijn
+        <Circle x={cx} y={yPivot - 6} radius={5} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      ) : null}
+
+      {type === 'Rolluikschakelaar' ? (
+        // Schuine streep met dubbele pijl boven (op/neer)
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 8, 4, cx - 8, 16]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, 4, cx - 11, 7]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, 4, cx - 5, 7]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, 16, cx - 11, 13]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, 16, cx - 5, 13]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Trekschakelaar' ? (
+        // Schuine streep met pijl-omhoog en dwarssteek
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[slashEnd.x, slashEnd.y, slashEnd.x + 4, slashEnd.y - 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[slashEnd.x + 4, slashEnd.y - 4, slashEnd.x + 1, slashEnd.y - 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[slashEnd.x + 4, slashEnd.y - 4, slashEnd.x + 4, slashEnd.y - 1]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {/* Aanvullende dimmer-pijl (parameter, naast type=Dimmer) */}
+      {dimmer && type !== 'Dimmer' ? (
+        <>
+          <Line points={[cx - 8, yPivot - 4, cx, yPivot - 12]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {/* Verklikkerlamp = klein cirkeltje met X erin links */}
+      {verklikker ? (
+        <>
+          <Circle x={cx - 12} y={yPivot - 8} radius={3} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+          <Line points={[cx - 14, yPivot - 10, cx - 10, yPivot - 6]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 14, yPivot - 6, cx - 10, yPivot - 10]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {/* Adres-label */}
+      {adres ? (
+        <Text x={cx + 12} y={yPivot - 16} text={adres} fontFamily={FONT_FAMILY} fontSize={9} fontStyle="italic" fill={s} />
+      ) : null}
+      {/* Aantal knoppen */}
+      {aantalKnoppen > 1 ? (
+        <Text x={cx - 6} y={yPivot - 24} text={`x${aantalKnoppen}`} fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
+      ) : null}
+      {/* Polen-label */}
+      {polen && polen !== '—' ? (
+        <Text x={cx + 12} y={yPivot - 4} text={polen} fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
+      ) : null}
     </Group>
   );
 };
 
 export const schakelaarSymbols: SymbolDefinition[] = [
   {
-    type: 'schakelaar_enkel',
+    type: 'schakelaar',
     category: 'schakelaars',
-    name: 'Enkelpolige schakelaar',
-    description: 'Gewone lichtschakelaar',
+    name: 'Schakelaar',
+    description: 'Schakelaar — type bepaalt de variant',
     width: 40,
     height: 40,
     connectionPoints: [
@@ -169,125 +182,15 @@ export const schakelaarSymbols: SymbolDefinition[] = [
       { id: 'out', position: 'bottom', x: 20, y: 40 },
     ],
     properties: {
-      opbouw: { label: 'Opbouw', type: 'boolean', defaultValue: false },
+      type: { label: 'Type', type: 'select', defaultValue: 'Enkelpolig', options: TYPE_OPTIONS },
+      polen: { label: 'Aantal polen', type: 'select', defaultValue: '—', options: POL_OPTIONS },
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
+      halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean', defaultValue: false },
+      dimmer: { label: 'Met dimmer', type: 'boolean', defaultValue: false },
+      verklikker: { label: 'Verklikkerlamp', type: 'boolean', defaultValue: false },
+      aantal_knoppen: { label: 'Aantal knoppen', type: 'number', defaultValue: 1 },
+      kring: { label: 'Kring', type: 'string', defaultValue: '' },
     },
-    Render: makeSchakelaarRender(),
-  },
-  {
-    type: 'schakelaar_dubbel',
-    category: 'schakelaars',
-    name: 'Dubbelpolige schakelaar',
-    description: 'Twee circuits schakelen',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {},
-    Render: DubbelpoligRender,
-  },
-  {
-    type: 'schakelaar_wissel',
-    category: 'schakelaars',
-    name: 'Wisselschakelaar',
-    description: 'Schakelaar in wisselschakeling',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {},
-    Render: makeSchakelaarRender('W'),
-  },
-  {
-    type: 'schakelaar_kruis',
-    category: 'schakelaars',
-    name: 'Kruisschakelaar',
-    description: 'Schakelaar in kruisschakeling',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {},
-    Render: makeSchakelaarRender('K'),
-  },
-  {
-    type: 'dimmer',
-    category: 'schakelaars',
-    name: 'Dimmer',
-    description: 'Lichtdimmer',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Draai', options: ['Druk', 'Draai', 'Touch'] },
-    },
-    Render: DimmerRender,
-  },
-  {
-    type: 'bewegingsmelder',
-    category: 'schakelaars',
-    name: 'Bewegingsmelder',
-    description: 'Automatische schakelaar',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {
-      buiten: { label: 'Buiten gebruik', type: 'boolean', defaultValue: false },
-      bereik: { label: 'Bereik (m)', type: 'number', defaultValue: 8, unit: 'm' },
-    },
-    Render: BewegingsmelderRender,
-  },
-  {
-    type: 'schemerschakelaar',
-    category: 'schakelaars',
-    name: 'Schemerschakelaar',
-    description: 'Lichtgevoelige schakelaar',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {},
-    Render: SchemerschakelaarRender,
-  },
-  {
-    type: 'rolluikschakelaar',
-    category: 'schakelaars',
-    name: 'Rolluikschakelaar',
-    description: 'Op/neer schakelaar',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {},
-    Render: RolluikschakelaarRender,
-  },
-  {
-    type: 'drukknop',
-    category: 'schakelaars',
-    name: 'Drukknop',
-    description: 'Drukknop (bv. voor bel)',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {},
-    Render: DrukknopRender,
+    Render: SchakelaarRender,
   },
 ];

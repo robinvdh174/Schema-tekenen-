@@ -7,14 +7,16 @@ export type SymbolCategory =
   | 'stopcontacten'
   | 'schakelaars'
   | 'verlichting'
+  | 'toestellen'
   | 'diversen';
 
 export const SYMBOL_CATEGORIES: { id: SymbolCategory; label: string }[] = [
   { id: 'voeding', label: 'Voeding & Meting' },
   { id: 'beveiliging', label: 'Beveiliging' },
-  { id: 'stopcontacten', label: 'Stopcontacten' },
+  { id: 'stopcontacten', label: 'Contactdozen' },
   { id: 'schakelaars', label: 'Schakelaars' },
   { id: 'verlichting', label: 'Verlichting' },
+  { id: 'toestellen', label: 'Toestellen' },
   { id: 'diversen', label: 'Diversen' },
 ];
 

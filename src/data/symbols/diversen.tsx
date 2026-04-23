@@ -1,281 +1,299 @@
 import { Circle, Group, Line, Rect, Text } from 'react-konva';
 import type { SymbolDefinition, SymbolRenderProps } from '@/types/symbols';
-import {
-  FILL_BG,
-  FONT_FAMILY,
-  STROKE_WIDTH,
-  STROKE_WIDTH_MAIN,
-  STROKE_WIDTH_THIN,
-  strokeFor,
-} from './draw';
+import { FILL_BG, FILL_BLACK, FONT_FAMILY, STROKE_WIDTH, STROKE_WIDTH_MAIN, strokeFor } from './draw';
 
-/* Utility: symbool binnen vierkante 40x40 met top connection point */
-const WithLead: React.FC<{ s: string; children: React.ReactNode; leadLen?: number }> = ({
-  s,
-  children,
-  leadLen = 8,
-}) => (
-  <Group>
-    <Line points={[20, 0, 20, leadLen]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-    {children}
-  </Group>
-);
+/* =========================================================================
+ * Diverse symbolen — Trikker conventies
+ * ========================================================================= */
 
-/* --- Bel --- */
-const BelRender = ({ state }: SymbolRenderProps) => {
+/* --- Geluidsbron (bel/sirene/hoorn/zoemer) ----------------------------- */
+const GELUIDSBRON_TYPES = ['Bel', 'Sirene', 'Hoorn', 'Zoemer'];
+
+const GeluidsbronRender = ({ state, properties }: SymbolRenderProps) => {
   const s = strokeFor(state);
-  return (
-    <WithLead s={s}>
-      <Circle x={20} y={22} radius={10} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Line points={[10, 22, 30, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      {/* Klepel */}
-      <Line points={[20, 22, 20, 32]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-    </WithLead>
-  );
-};
+  const type = String(properties.type?.value ?? 'Bel');
+  const adres = String(properties.adres?.value ?? '');
+  const autonoom = Boolean(properties.autonoom?.value ?? false);
 
-/* --- Parlofoon --- */
-const ParlofoonRender = ({ state, properties }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  const video = Boolean(properties.video?.value ?? false);
-  return (
-    <WithLead s={s}>
-      <Rect x={6} y={8} width={28} height={28} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      {/* Handset */}
-      <Line points={[12, 16, 18, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Line points={[28, 16, 22, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Line points={[18, 22, 22, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      {video ? (
-        <Text x={6} y={27} width={28} text="VIDEO" align="center" fontFamily={FONT_FAMILY} fontSize={7} fill={s} />
-      ) : null}
-    </WithLead>
-  );
-};
+  const cx = 20;
+  const yTop = 0;
+  const yMid = 16;
 
-/* --- Rookmelder --- */
-const RookmelderRender = ({ state, properties }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  const type = String(properties.type?.value ?? 'Optisch');
-  return (
-    <WithLead s={s}>
-      <Circle x={20} y={22} radius={10} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Text
-        x={10}
-        y={16}
-        width={20}
-        text={type === 'Thermisch' ? 'T' : 'S'}
-        align="center"
-        fontFamily={FONT_FAMILY}
-        fontSize={13}
-        fontStyle="700"
-        fill={s}
-      />
-    </WithLead>
-  );
-};
-
-/* --- CO-melder --- */
-const CoMelderRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <WithLead s={s}>
-      <Circle x={20} y={22} radius={10} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Text x={10} y={16} width={20} text="CO" align="center" fontFamily={FONT_FAMILY} fontSize={10} fontStyle="700" fill={s} />
-    </WithLead>
-  );
-};
-
-/* --- Thermostaat --- */
-const ThermostaatRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <WithLead s={s}>
-      <Rect x={6} y={8} width={28} height={22} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Text x={6} y={12} width={28} text="T" align="center" fontFamily={FONT_FAMILY} fontSize={13} fontStyle="700" fill={s} />
-      <Text x={6} y={26} width={28} text="°C" align="center" fontFamily={FONT_FAMILY} fontSize={8} fill={s} />
-    </WithLead>
-  );
-};
-
-/* --- Boiler --- */
-const BoilerRender = ({ state, properties }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  const vermogen = String(properties.vermogen?.value ?? 2000);
-  return (
-    <WithLead s={s}>
-      <Rect x={4} y={8} width={32} height={28} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} cornerRadius={4} />
-      {/* Verwarmingselement (zigzag) */}
-      <Line points={[10, 22, 14, 18, 18, 26, 22, 18, 26, 26, 30, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Text x={0} y={38} width={40} text={`${vermogen}W`} align="center" fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
-    </WithLead>
-  );
-};
-
-/* --- Elektrische verwarming --- */
-const VerwarmingRender = ({ state, properties }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  const wattage = String(properties.wattage?.value ?? 1500);
-  return (
-    <WithLead s={s}>
-      <Rect x={4} y={8} width={32} height={24} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      {/* Horizontale lamellen */}
-      <Line points={[6, 14, 34, 14]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[6, 20, 34, 20]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[6, 26, 34, 26]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Text x={0} y={34} width={40} text={`${wattage}W`} align="center" fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
-    </WithLead>
-  );
-};
-
-/* --- Ventilator --- */
-const VentilatorRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <WithLead s={s}>
-      <Circle x={20} y={22} radius={10} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      {/* Drie bladen */}
-      <Line points={[20, 22, 20, 12]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Line points={[20, 22, 28, 27]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Line points={[20, 22, 12, 27]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Circle x={20} y={22} radius={2} fill={s} />
-    </WithLead>
-  );
-};
-
-/* --- Aarding --- */
-const AardingRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
   return (
     <Group>
-      <Line points={[20, 0, 20, 16]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Line points={[6, 16, 34, 16]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Line points={[10, 22, 30, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Line points={[14, 28, 26, 28]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Line points={[17, 34, 23, 34]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[cx, yTop, cx, yMid]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {/* Autonoom = "+" boven */}
+      {autonoom ? (
+        <>
+          <Line points={[cx - 3, 4, cx + 3, 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx, 1, cx, 7]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Bel' ? (
+        // D-vorm (halve cirkel met diameter rechts)
+        <>
+          <Line points={[cx, yMid, cx + 14, yMid]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line
+            points={(() => {
+              const pts: number[] = [];
+              for (let i = 0; i <= 16; i++) {
+                const a = -Math.PI / 2 + (Math.PI * i) / 16;
+                pts.push(cx + 8 * Math.cos(a));
+                pts.push(yMid + 8 + 8 * Math.sin(a));
+              }
+              return pts;
+            })()}
+            stroke={s}
+            strokeWidth={STROKE_WIDTH}
+          />
+        </>
+      ) : null}
+
+      {type === 'Sirene' ? (
+        // Driehoek met punt naar rechts
+        <Line points={[cx, yMid, cx + 14, yMid + 6, cx, yMid + 12, cx, yMid]} stroke={s} strokeWidth={STROKE_WIDTH} closed fill={FILL_BG} />
+      ) : null}
+
+      {type === 'Hoorn' ? (
+        // Trapezium-vorm
+        <Line points={[cx, yMid + 2, cx + 8, yMid - 2, cx + 14, yMid + 4, cx + 14, yMid + 8, cx + 8, yMid + 14, cx, yMid + 10, cx, yMid + 2]} stroke={s} strokeWidth={STROKE_WIDTH} closed fill={FILL_BG} />
+      ) : null}
+
+      {type === 'Zoemer' ? (
+        // Halve cirkel met diameter onder (gevuld zwart)
+        <Line
+          points={(() => {
+            const pts: number[] = [cx, yMid + 8];
+            for (let i = 0; i <= 16; i++) {
+              const a = Math.PI - (Math.PI * i) / 16;
+              pts.push(cx + 8 * Math.cos(a) + 8);
+              pts.push(yMid + 8 - 8 * Math.sin(a));
+            }
+            pts.push(cx + 16, yMid + 8);
+            return pts;
+          })()}
+          stroke={s}
+          strokeWidth={STROKE_WIDTH}
+          closed
+          fill={FILL_BG}
+        />
+      ) : null}
+
+      {adres ? (
+        <Text x={cx + 18} y={yMid + 4} text={adres} fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
+      ) : null}
     </Group>
   );
 };
 
-/* --- Equipotentiale verbinding --- */
-const EquipotentiaalRender = ({ state }: SymbolRenderProps) => {
+/* --- Intercom ---------------------------------------------------------- */
+const IntercomRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const adres = String(properties.adres?.value ?? '');
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Rect x={10} y={14} width={20} height={16} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      {/* Pijl naar rechts (transmit) */}
+      <Line points={[26, 22, 30, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[28, 20, 30, 22, 28, 24]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      {adres ? (
+        <Text x={32} y={16} text={adres} fontFamily={FONT_FAMILY} fontSize={10} fill={s} />
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Bewegingsdetector (passief) --------------------------------------- */
+const BewegingsdetectorRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const adres = String(properties.adres?.value ?? '');
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {/* Driehoek met top naar rechts */}
+      <Line points={[20, 14, 32, 22, 20, 30, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH} closed fill={FILL_BG} />
+      {/* Stralen */}
+      <Line points={[26, 18, 32, 14]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[28, 22, 36, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[26, 26, 32, 30]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      {adres ? (
+        <Text x={38} y={18} text={adres} fontFamily={FONT_FAMILY} fontSize={9} fontStyle="italic" fill={s} />
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Branddetector ----------------------------------------------------- */
+const BRAND_TYPES = ['Niet gespecifieerd', 'Rookdetector', 'Warmtedetector', 'Vlamdetector', 'Gasdetector', 'Manueel', 'Straaldetector'];
+
+const BranddetectorRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const type = String(properties.type?.value ?? 'Rookdetector');
+  const adres = String(properties.adres?.value ?? '');
+
+  const cx = 20;
+  const yMid = 22;
+
+  return (
+    <Group>
+      <Line points={[cx, 0, cx, 12]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {/* Vierkant kader */}
+      <Rect x={cx - 8} y={yMid - 8} width={16} height={16} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+
+      {type === 'Rookdetector' ? (
+        // S-krul (gespiegeld) binnen het vierkant
+        <Line points={[cx - 4, yMid + 4, cx - 4, yMid - 2, cx + 4, yMid + 2, cx + 4, yMid - 4]} stroke={s} strokeWidth={STROKE_WIDTH} tension={0.5} />
+      ) : null}
+      {type === 'Warmtedetector' ? (
+        // < teken
+        <Line points={[cx + 3, yMid - 5, cx - 3, yMid, cx + 3, yMid + 5]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      ) : null}
+      {type === 'Vlamdetector' ? (
+        // Hangende S
+        <Line points={[cx - 4, yMid - 4, cx + 4, yMid + 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      ) : null}
+      {type === 'Gasdetector' ? (
+        // Driehoek
+        <Line points={[cx, yMid - 5, cx + 5, yMid + 4, cx - 5, yMid + 4, cx, yMid - 5]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      ) : null}
+      {type === 'Manueel' ? (
+        <Text x={cx - 4} y={yMid - 6} width={8} text="M" align="center" fontSize={10} fontStyle="700" fontFamily={FONT_FAMILY} fill={s} />
+      ) : null}
+      {type === 'Straaldetector' ? (
+        // Verticale streep
+        <Line points={[cx, yMid - 6, cx, yMid + 6]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      ) : null}
+
+      {adres ? (
+        <Text x={cx + 12} y={yMid - 4} text={adres} fontFamily={FONT_FAMILY} fontSize={9} fontStyle="italic" fill={s} />
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Thermostaat ------------------------------------------------------- */
+const ThermostaatRender = ({ state }: SymbolRenderProps) => {
   const s = strokeFor(state);
   return (
     <Group>
       <Line points={[20, 0, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={20} radius={6} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Line points={[20, 14, 20, 26]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Line points={[14, 20, 26, 20]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      <Text x={0} y={28} width={40} text="EQP" align="center" fontFamily={FONT_FAMILY} fontSize={9} fontStyle="700" fill={s} />
+      <Rect x={6} y={14} width={28} height={14} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      {/* Horizontale streep midden = thermostaat */}
+      <Line points={[12, 21, 28, 21]} stroke={s} strokeWidth={STROKE_WIDTH} />
     </Group>
   );
 };
 
-/* --- Data / RJ45 --- */
-const DataRender = ({ state, properties }: SymbolRenderProps) => {
+/* --- Motor ------------------------------------------------------------- */
+const MotorRender = ({ state, properties }: SymbolRenderProps) => {
   const s = strokeFor(state);
-  const cat = String(properties.categorie?.value ?? 'Cat 6');
-  return (
-    <WithLead s={s}>
-      <Rect x={6} y={8} width={28} height={22} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Text x={6} y={10} width={28} text="RJ45" align="center" fontFamily={FONT_FAMILY} fontSize={9} fontStyle="700" fill={s} />
-      <Text x={6} y={22} width={28} text={cat} align="center" fontFamily={FONT_FAMILY} fontSize={8} fill={s} />
-    </WithLead>
-  );
-};
-
-/* --- TV / coax --- */
-const TvRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <WithLead s={s}>
-      <Rect x={6} y={8} width={28} height={22} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Text x={6} y={13} width={28} text="TV" align="center" fontFamily={FONT_FAMILY} fontSize={12} fontStyle="700" fill={s} />
-    </WithLead>
-  );
-};
-
-/* --- Telefoon --- */
-const TelefoonRender = ({ state }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  return (
-    <WithLead s={s}>
-      <Rect x={6} y={8} width={28} height={22} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      <Text x={6} y={13} width={28} text="TEL" align="center" fontFamily={FONT_FAMILY} fontSize={11} fontStyle="700" fill={s} />
-    </WithLead>
-  );
-};
-
-/* --- Zonnepanelen omvormer --- */
-const OmvormerRender = ({ state, properties }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  const vermogen = String(properties.vermogen?.value ?? '5 kWp');
+  const adres = String(properties.adres?.value ?? '');
   return (
     <Group>
-      <Line points={[20, 0, 20, 8]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Rect x={4} y={8} width={52} height={32} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-      {/* DC -> AC pictogram */}
-      <Line points={[10, 18, 18, 18]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[10, 22, 14, 22]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      <Line points={[16, 22, 18, 22]} stroke={s} strokeWidth={STROKE_WIDTH_THIN} />
-      {/* Sinus aan rechterkant */}
-      <Line
-        points={[36, 22, 40, 16, 44, 22, 48, 28, 52, 22]}
-        stroke={s}
-        strokeWidth={STROKE_WIDTH_THIN}
-      />
-      <Text x={0} y={42} width={60} text={vermogen} align="center" fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
+      <Line points={[20, 0, 20, 12]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Circle x={20} y={22} radius={10} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      <Text x={10} y={16} width={20} text="M" align="center" fontFamily={FONT_FAMILY} fontSize={12} fontStyle="700" fill={s} />
+      {adres ? (
+        <Text x={34} y={18} text={adres} fontFamily={FONT_FAMILY} fontSize={9} fontStyle="italic" fill={s} />
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Pomp -------------------------------------------------------------- */
+const PompRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const adres = String(properties.adres?.value ?? '');
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 12]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Circle x={20} y={22} radius={10} fill={FILL_BLACK} />
+      {/* Witte driehoek-pijl in midden voor stromingsrichting */}
+      <Line points={[16, 18, 26, 22, 16, 26]} stroke={FILL_BG} strokeWidth={STROKE_WIDTH_MAIN} fill={FILL_BG} closed />
+      {adres ? (
+        <Text x={34} y={18} text={adres} fontFamily={FONT_FAMILY} fontSize={9} fontStyle="italic" fill={s} />
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Trillingsdetector ------------------------------------------------- */
+const TrillingsdetectorRender = ({ state }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {/* Cirkel-helft met "U" voor glasbreuk */}
+      <Line points={[10, 22, 10, 14, 30, 14, 30, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[10, 22, 30, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[10, 14, 12, 12, 28, 12, 30, 14]} stroke={s} strokeWidth={STROKE_WIDTH} />
     </Group>
   );
 };
 
 export const diversenSymbols: SymbolDefinition[] = [
   {
-    type: 'bel',
+    type: 'geluidsbron',
     category: 'diversen',
-    name: 'Bel / deurbel',
-    description: 'Belsignaal',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {},
-    Render: BelRender,
-  },
-  {
-    type: 'parlofoon',
-    category: 'diversen',
-    name: 'Parlofoon',
-    description: 'Intercom',
+    name: 'Geluidsbron',
+    description: 'Bel / sirene / hoorn / zoemer',
     width: 40,
     height: 40,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
     properties: {
-      video: { label: 'Met video', type: 'boolean', defaultValue: false },
+      type: { label: 'Type', type: 'select', defaultValue: 'Bel', options: GELUIDSBRON_TYPES },
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
+      autonoom: { label: 'Autonoom', type: 'boolean', defaultValue: false },
+      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
     },
-    Render: ParlofoonRender,
+    Render: GeluidsbronRender,
   },
   {
-    type: 'rookmelder',
+    type: 'intercom',
     category: 'diversen',
-    name: 'Rookmelder',
-    description: 'Branddetectie',
+    name: 'Intercom',
+    description: 'Parlofoon / videofoon',
     width: 40,
-    height: 40,
+    height: 32,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
     properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Optisch', options: ['Optisch', 'Thermisch'] },
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
+      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
     },
-    Render: RookmelderRender,
+    Render: IntercomRender,
   },
   {
-    type: 'co_melder',
+    type: 'bewegingsdetector',
     category: 'diversen',
-    name: 'CO-melder',
-    description: 'Koolmonoxidedetector',
+    name: 'Bewegingsdetector',
+    description: 'Passieve bewegingsdetectie',
     width: 40,
-    height: 40,
+    height: 32,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {},
-    Render: CoMelderRender,
+    properties: {
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
+      infrarood: { label: 'Infrarood', type: 'boolean', defaultValue: true },
+      radar: { label: 'Radar', type: 'boolean', defaultValue: false },
+      ultrasoon: { label: 'Ultrasoon', type: 'boolean', defaultValue: false },
+    },
+    Render: BewegingsdetectorRender,
+  },
+  {
+    type: 'branddetector',
+    category: 'diversen',
+    name: 'Branddetector',
+    description: 'Rook / warmte / vlam / gas / manueel',
+    width: 40,
+    height: 32,
+    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
+    properties: {
+      type: { label: 'Type', type: 'select', defaultValue: 'Rookdetector', options: BRAND_TYPES },
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
+      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
+    },
+    Render: BranddetectorRender,
   },
   {
     type: 'thermostaat',
@@ -283,7 +301,7 @@ export const diversenSymbols: SymbolDefinition[] = [
     name: 'Thermostaat',
     description: 'Verwarmingsregeling',
     width: 40,
-    height: 40,
+    height: 32,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
     properties: {
       programmeerbaar: { label: 'Programmeerbaar', type: 'boolean', defaultValue: true },
@@ -291,117 +309,45 @@ export const diversenSymbols: SymbolDefinition[] = [
     Render: ThermostaatRender,
   },
   {
-    type: 'boiler',
+    type: 'motor',
     category: 'diversen',
-    name: 'Boiler',
-    description: 'Elektrische boiler',
+    name: 'Motor',
+    description: 'Elektromotor',
     width: 40,
-    height: 46,
+    height: 36,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
     properties: {
-      vermogen: { label: 'Vermogen', type: 'number', defaultValue: 2000, unit: 'W' },
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
+      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
+      vermogen: { label: 'Vermogen', type: 'string', defaultValue: '' },
     },
-    Render: BoilerRender,
+    Render: MotorRender,
   },
   {
-    type: 'verwarming',
+    type: 'pomp',
     category: 'diversen',
-    name: 'Elektrische verwarming',
-    description: 'Radiator / convector',
+    name: 'Pomp',
+    description: 'Waterpomp',
     width: 40,
-    height: 46,
+    height: 36,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
     properties: {
-      wattage: { label: 'Wattage', type: 'number', defaultValue: 1500, unit: 'W' },
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
+      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
     },
-    Render: VerwarmingRender,
+    Render: PompRender,
   },
   {
-    type: 'ventilator',
+    type: 'trillingsdetector',
     category: 'diversen',
-    name: 'Ventilator',
-    description: 'Ventilatiesysteem',
+    name: 'Trillingsdetector',
+    description: 'Glasbreukdetector',
     width: 40,
-    height: 40,
+    height: 28,
     connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
     properties: {
-      debiet: { label: 'Debiet', type: 'number', defaultValue: 100, unit: 'm³/u' },
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
     },
-    Render: VentilatorRender,
-  },
-  {
-    type: 'aarding',
-    category: 'diversen',
-    name: 'Aarding',
-    description: 'Aardingspen / -plaat',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Pen', options: ['Pen', 'Plaat', 'Lus'] },
-    },
-    Render: AardingRender,
-  },
-  {
-    type: 'equipotentiaal',
-    category: 'diversen',
-    name: 'Equipotentiale verbinding',
-    description: 'Gelijkpotentiaalverbinding',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {},
-    Render: EquipotentiaalRender,
-  },
-  {
-    type: 'data_rj45',
-    category: 'diversen',
-    name: 'Data / netwerk',
-    description: 'RJ45 ethernet aansluiting',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      categorie: { label: 'Categorie', type: 'select', defaultValue: 'Cat 6', options: ['Cat 5e', 'Cat 6', 'Cat 6a', 'Cat 7'] },
-    },
-    Render: DataRender,
-  },
-  {
-    type: 'tv_coax',
-    category: 'diversen',
-    name: 'TV / coax',
-    description: 'Televisie aansluiting',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {},
-    Render: TvRender,
-  },
-  {
-    type: 'telefoon',
-    category: 'diversen',
-    name: 'Telefoon',
-    description: 'Telefoonaansluiting (RJ11)',
-    width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {},
-    Render: TelefoonRender,
-  },
-  {
-    type: 'omvormer',
-    category: 'diversen',
-    name: 'Zonnepanelen omvormer',
-    description: 'PV-omvormer',
-    width: 60,
-    height: 54,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 30, y: 40 },
-    ],
-    properties: {
-      vermogen: { label: 'Vermogen', type: 'string', defaultValue: '5 kWp' },
-    },
-    Render: OmvormerRender,
+    Render: TrillingsdetectorRender,
   },
 ];

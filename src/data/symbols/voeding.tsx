@@ -1,282 +1,204 @@
-import { Arrow, Circle, Group, Line, Rect, Text } from 'react-konva';
+import { Circle, Group, Line, Rect, Text } from 'react-konva';
 import type { SymbolDefinition, SymbolRenderProps } from '@/types/symbols';
-import {
-  FILL_BG,
-  FONT_FAMILY,
-  STROKE_WIDTH,
-  STROKE_WIDTH_MAIN,
-  STROKE_WIDTH_THIN,
-  strokeFor,
-} from './draw';
+import { FILL_BG, FILL_BLACK, FONT_FAMILY, STROKE_WIDTH, STROKE_WIDTH_MAIN, strokeFor } from './draw';
+
+/* =========================================================================
+ * Voeding & meting — Trikker conventies
+ * ========================================================================= */
 
 const VOLTAGE_OPTIONS = ['230V', '400V'];
-const AMPERAGE_OPTIONS = ['25A', '40A', '63A', '80A', '100A'];
-const DIFF_SENSITIVITY = ['30mA', '100mA', '300mA', '500mA'];
-const DIFF_TYPE = ['A', 'AC', 'B'];
-const METER_TARIEF = ['Enkelvoudig', 'Dag/Nacht', 'Exclusief nacht'];
 
-/* --- Aansluitpunt net --------------------------------------------------- */
+/* --- Aansluitpunt (open cirkeltje) -------------------------------------- */
 const AansluitpuntRender = ({ state, properties }: SymbolRenderProps) => {
   const s = strokeFor(state);
-  const voltage = String(properties.voltage?.value ?? '230V');
-  return (
-    <Group>
-      {/* Inkomende pijl */}
-      <Arrow
-        points={[20, 0, 20, 30]}
-        stroke={s}
-        fill={s}
-        strokeWidth={STROKE_WIDTH_MAIN}
-        pointerLength={8}
-        pointerWidth={10}
-      />
-      <Line points={[5, 30, 35, 30]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Line points={[20, 30, 20, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Text
-        x={-10}
-        y={4}
-        width={60}
-        text={voltage}
-        fontFamily={FONT_FAMILY}
-        fontSize={11}
-        fontStyle="600"
-        align="center"
-        fill={s}
-      />
-    </Group>
-  );
-};
-
-/* --- Hoofdschakelaar ---------------------------------------------------- */
-const HoofdschakelaarRender = ({ state, properties }: SymbolRenderProps) => {
-  const s = strokeFor(state);
-  const amp = String(properties.amperage?.value ?? '40A');
+  const tekst = String(properties.tekst?.value ?? '');
   return (
     <Group>
       <Line points={[20, 0, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Line points={[20, 46, 20, 60]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={16} radius={2} fill={s} />
-      {/* Open schakelaarcontact */}
-      <Line points={[20, 16, 34, 42]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Circle x={20} y={44} radius={2} fill={s} />
-      <Text
-        x={42}
-        y={22}
-        text={amp}
-        fontFamily={FONT_FAMILY}
-        fontSize={11}
-        fontStyle="600"
-        fill={s}
-      />
+      <Circle x={20} y={20} radius={6} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      {tekst ? (
+        <Text x={32} y={16} text={tekst} fontFamily={FONT_FAMILY} fontSize={11} fill={s} />
+      ) : null}
     </Group>
   );
 };
 
-/* --- kWh-meter ---------------------------------------------------------- */
-const KwhMeterRender = ({ state, properties }: SymbolRenderProps) => {
+/* --- Aansluitklem (cirkeltje met diagonale streep) ---------------------- */
+const AansluitklemRender = ({ state, properties }: SymbolRenderProps) => {
   const s = strokeFor(state);
-  const tarief = String(properties.tarief?.value ?? 'Enkelvoudig');
+  const tekst = String(properties.tekst?.value ?? '');
   return (
     <Group>
-      <Line points={[30, 0, 30, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      <Rect
-        x={5}
-        y={10}
-        width={50}
-        height={40}
-        stroke={s}
-        strokeWidth={STROKE_WIDTH}
-        fill={FILL_BG}
-        cornerRadius={2}
-      />
+      <Line points={[20, 0, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Circle x={20} y={20} radius={6} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      <Line points={[15, 25, 25, 15]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      {tekst ? (
+        <Text x={32} y={16} text={tekst} fontFamily={FONT_FAMILY} fontSize={11} fill={s} />
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Aftakkast (zwarte gevulde cirkel, optioneel met dubbele omtrek) --- */
+const AftakkastRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const compact = Boolean(properties.compact?.value ?? false);
+  const adres = String(properties.adres?.value ?? '');
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 12]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {compact ? (
+        <Circle x={20} y={20} radius={6} fill={FILL_BLACK} stroke={s} strokeWidth={STROKE_WIDTH} />
+      ) : (
+        <>
+          <Circle x={20} y={20} radius={9} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+          <Circle x={20} y={20} radius={5} fill={FILL_BLACK} />
+        </>
+      )}
+      {adres ? (
+        <Text x={32} y={16} text={adres} fontFamily={FONT_FAMILY} fontSize={11} fill={s} />
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Aarding (drie aflopende horizontale strepen) ----------------------- */
+const AardingRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const weerstand = String(properties.weerstand?.value ?? '');
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 16]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Line points={[8, 16, 32, 16]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Line points={[12, 22, 28, 22]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[16, 28, 24, 28]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      {weerstand ? (
+        <Text x={36} y={14} text={weerstand} fontFamily={FONT_FAMILY} fontSize={11} fill={s} />
+      ) : null}
+    </Group>
+  );
+};
+
+/* --- Aardingsstrip (verticale condensator-achtige) ---------------------- */
+const AardingstripRender = ({ state }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 14]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Line points={[10, 14, 30, 14]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[10, 18, 30, 18]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Line points={[20, 18, 20, 32]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+    </Group>
+  );
+};
+
+/* --- Teller / kWh-meter (rechthoek met "kWh") --------------------------- */
+const TellerRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const tekst = String(properties.tekst?.value ?? 'kWh');
+  return (
+    <Group>
+      <Line points={[20, 0, 20, 6]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Rect x={4} y={6} width={32} height={22} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
       <Text
-        x={5}
-        y={20}
-        width={50}
-        text="kWh"
+        x={4}
+        y={10}
+        width={32}
+        text={tekst}
+        align="center"
         fontFamily={FONT_FAMILY}
         fontSize={12}
         fontStyle="700"
-        align="center"
         fill={s}
       />
-      <Text
-        x={5}
-        y={34}
-        width={50}
-        text={tarief === 'Dag/Nacht' ? '2T' : tarief === 'Exclusief nacht' ? 'EN' : '1T'}
-        fontFamily={FONT_FAMILY}
-        fontSize={9}
-        align="center"
-        fill={s}
-      />
-      <Line points={[30, 50, 30, 60]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      <Line points={[20, 28, 20, 34]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
     </Group>
   );
-};
-
-/* --- Differentieel (generiek) ------------------------------------------- */
-const makeDifferentieelRender = (defaultSensitivity: string) => {
-  const Render = ({ state, properties }: SymbolRenderProps) => {
-    const s = strokeFor(state);
-    const amp = String(properties.amperage?.value ?? '40A');
-    const sens = String(properties.sensitivity?.value ?? defaultSensitivity);
-    const type = String(properties.type?.value ?? 'A');
-    return (
-      <Group>
-        <Line points={[20, 0, 20, 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-        <Rect
-          x={2}
-          y={10}
-          width={36}
-          height={50}
-          stroke={s}
-          strokeWidth={STROKE_WIDTH}
-          fill={FILL_BG}
-          cornerRadius={2}
-        />
-        {/* Gestippelde omkaderingslijn toont differentieeldetectie */}
-        <Rect
-          x={7}
-          y={15}
-          width={26}
-          height={40}
-          stroke={s}
-          strokeWidth={STROKE_WIDTH_THIN}
-          dash={[3, 3]}
-          fill="transparent"
-        />
-        {/* Testknop (T) rechts */}
-        <Circle x={32} y={20} radius={3} stroke={s} strokeWidth={1} fill={FILL_BG} />
-        <Text x={28} y={16.5} text="T" fontSize={7} fontFamily={FONT_FAMILY} fill={s} />
-        {/* Schakelcontact diagonaal */}
-        <Line points={[20, 22, 28, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-        <Circle x={20} y={22} radius={2} fill={s} />
-        <Circle x={20} y={42} radius={2} fill={s} />
-        <Line points={[20, 60, 20, 70]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-
-        <Text
-          x={42}
-          y={18}
-          text={amp}
-          fontFamily={FONT_FAMILY}
-          fontSize={11}
-          fontStyle="600"
-          fill={s}
-        />
-        <Text
-          x={42}
-          y={32}
-          text={sens}
-          fontFamily={FONT_FAMILY}
-          fontSize={10}
-          fill={s}
-        />
-        <Text
-          x={42}
-          y={46}
-          text={`Type ${type}`}
-          fontFamily={FONT_FAMILY}
-          fontSize={9}
-          fill={s}
-        />
-      </Group>
-    );
-  };
-  return Render;
-};
-
-/* --- Definitions -------------------------------------------------------- */
-const aansluitpuntProps = {
-  voltage: { label: 'Spanning', type: 'select' as const, defaultValue: '230V', options: VOLTAGE_OPTIONS },
-};
-
-const hoofdschakelaarProps = {
-  amperage: { label: 'Amperage', type: 'select' as const, defaultValue: '40A', options: AMPERAGE_OPTIONS },
-};
-
-const kwhProps = {
-  tarief: { label: 'Tarief', type: 'select' as const, defaultValue: 'Enkelvoudig', options: METER_TARIEF },
-};
-
-const diffProps300 = {
-  amperage: { label: 'Amperage', type: 'select' as const, defaultValue: '40A', options: AMPERAGE_OPTIONS },
-  sensitivity: { label: 'Gevoeligheid', type: 'select' as const, defaultValue: '300mA', options: DIFF_SENSITIVITY },
-  type: { label: 'Type', type: 'select' as const, defaultValue: 'A', options: DIFF_TYPE },
-};
-
-const diffProps30 = {
-  amperage: { label: 'Amperage', type: 'select' as const, defaultValue: '40A', options: AMPERAGE_OPTIONS },
-  sensitivity: { label: 'Gevoeligheid', type: 'select' as const, defaultValue: '30mA', options: DIFF_SENSITIVITY },
-  type: { label: 'Type', type: 'select' as const, defaultValue: 'A', options: DIFF_TYPE },
 };
 
 export const voedingSymbols: SymbolDefinition[] = [
   {
-    type: 'aansluitpunt_net',
+    type: 'aansluitpunt',
     category: 'voeding',
-    name: 'Aansluitpunt net',
-    description: 'Netaansluiting (230V/400V)',
+    name: 'Aansluitpunt',
+    description: 'Aansluitpunt op een kring',
     width: 40,
-    height: 40,
-    connectionPoints: [{ id: 'out', position: 'bottom', x: 20, y: 40 }],
-    properties: aansluitpuntProps,
+    height: 30,
+    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
+    properties: {
+      tekst: { label: 'Tekst', type: 'string', defaultValue: '' },
+      voltage: { label: 'Spanning', type: 'select', defaultValue: '230V', options: VOLTAGE_OPTIONS },
+    },
     Render: AansluitpuntRender,
   },
   {
-    type: 'hoofdschakelaar',
+    type: 'aansluitklem',
     category: 'voeding',
-    name: 'Hoofdschakelaar',
-    description: 'Hoofdschakelaar installatie',
+    name: 'Aansluitklem',
+    description: 'Aansluitklem',
     width: 40,
-    height: 60,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 60 },
-    ],
-    properties: hoofdschakelaarProps,
-    Render: HoofdschakelaarRender,
+    height: 30,
+    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
+    properties: {
+      tekst: { label: 'Tekst', type: 'string', defaultValue: '' },
+    },
+    Render: AansluitklemRender,
   },
   {
-    type: 'kwh_meter',
+    type: 'aftakkast',
     category: 'voeding',
-    name: 'kWh-meter',
-    description: 'Elektriciteitsmeter',
-    width: 60,
-    height: 60,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 30, y: 0 },
-      { id: 'out', position: 'bottom', x: 30, y: 60 },
-    ],
-    properties: kwhProps,
-    Render: KwhMeterRender,
+    name: 'Aftakkast',
+    description: 'Aftakkast / verbindingskast',
+    width: 40,
+    height: 32,
+    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
+    properties: {
+      adres: { label: 'Adres', type: 'string', defaultValue: '' },
+      compact: { label: 'Compact symbool', type: 'boolean', defaultValue: false },
+    },
+    Render: AftakkastRender,
   },
   {
-    type: 'differentieel_300ma',
+    type: 'aarding',
     category: 'voeding',
-    name: 'Differentieel 300mA',
-    description: 'Hoofddifferentieel',
+    name: 'Aarding',
+    description: 'Aardingspunt',
     width: 40,
-    height: 70,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 70 },
-    ],
-    properties: diffProps300,
-    Render: makeDifferentieelRender('300mA'),
+    height: 32,
+    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
+    properties: {
+      weerstand: { label: 'Weerstand', type: 'string', defaultValue: '' },
+    },
+    Render: AardingRender,
   },
   {
-    type: 'differentieel_30ma',
+    type: 'aardingsstrip',
     category: 'voeding',
-    name: 'Differentieel 30mA',
-    description: 'Aanvullend differentieel',
+    name: 'Aardingsstrip',
+    description: 'Aardingsstrip',
     width: 40,
-    height: 70,
+    height: 34,
     connectionPoints: [
       { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 70 },
+      { id: 'out', position: 'bottom', x: 20, y: 32 },
     ],
-    properties: diffProps30,
-    Render: makeDifferentieelRender('30mA'),
+    properties: {},
+    Render: AardingstripRender,
+  },
+  {
+    type: 'teller_kwh',
+    category: 'voeding',
+    name: 'Teller (kWh)',
+    description: 'Elektriciteitsteller',
+    width: 40,
+    height: 34,
+    connectionPoints: [
+      { id: 'in', position: 'top', x: 20, y: 0 },
+      { id: 'out', position: 'bottom', x: 20, y: 34 },
+    ],
+    properties: {
+      tekst: { label: 'Tekst', type: 'string', defaultValue: 'kWh' },
+    },
+    Render: TellerRender,
   },
 ];
