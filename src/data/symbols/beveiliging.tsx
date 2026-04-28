@@ -168,29 +168,41 @@ const OverspanningsbeveiligingRender = ({ state, properties }: SymbolRenderProps
   );
 };
 
+const AUTOMAAT_PRESETS: { type: string; name: string; description: string; defaultType: string }[] = [
+  { type: 'automaat', name: 'Automaat', description: 'Automatische zekering', defaultType: 'Automaat' },
+  { type: 'differentieelschakelaar', name: 'Differentieelschakelaar', description: 'Differentieelschakelaar (Δ)', defaultType: 'Differentieelschakelaar' },
+  { type: 'differentieelautomaat', name: 'Differentieelautomaat', description: 'Combineert automaat + differentieel', defaultType: 'Differentieelautomaat' },
+  { type: 'zekeringscheider', name: 'Zekeringscheider', description: 'Zekeringscheider', defaultType: 'Zekeringscheider' },
+  { type: 'draaischakelaar', name: 'Draaischakelaar', description: 'Draaischakelaar in bord', defaultType: 'Draaischakelaar' },
+  { type: 'schemerschakelaar_bord', name: 'Schemerschakelaar', description: 'Schemerschakelaar in bord', defaultType: 'Schemerschakelaar' },
+  { type: 'contact', name: 'Contact', description: 'Algemeen schakelcontact', defaultType: 'Contact' },
+];
+
+const automaatProperties = (defaultType: string) => ({
+  type: { label: 'Type', type: 'select' as const, defaultValue: defaultType, options: TYPE_OPTIONS },
+  polen: { label: 'Polen', type: 'select' as const, defaultValue: '2P', options: POL_OPTIONS },
+  amperage: { label: 'Amperage', type: 'string' as const, defaultValue: '16A' },
+  curve: { label: 'Curve', type: 'select' as const, defaultValue: 'C', options: CURVE_OPTIONS },
+  gevoeligheid: { label: 'Gevoeligheid (Δ)', type: 'select' as const, defaultValue: '300mA', options: DIFF_GEVOELIGHEID },
+  diff_type: { label: 'Diff. type', type: 'select' as const, defaultValue: 'A', options: DIFF_TYPES },
+  kring: { label: 'Kring', type: 'string' as const, defaultValue: '' },
+});
+
 export const beveiligingSymbols: SymbolDefinition[] = [
-  {
-    type: 'automaat',
-    category: 'beveiliging',
-    name: 'Automatische schakelaar',
-    description: 'Automaat / disjoncteur',
+  ...AUTOMAAT_PRESETS.map(({ type, name, description, defaultType }) => ({
+    type,
+    category: 'beveiliging' as const,
+    name,
+    description,
     width: 40,
     height: 50,
     connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 50 },
+      { id: 'in', position: 'top' as const, x: 20, y: 0 },
+      { id: 'out', position: 'bottom' as const, x: 20, y: 50 },
     ],
-    properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Automaat', options: TYPE_OPTIONS },
-      polen: { label: 'Polen', type: 'select', defaultValue: '2P', options: POL_OPTIONS },
-      amperage: { label: 'Amperage', type: 'string', defaultValue: '16A' },
-      curve: { label: 'Curve', type: 'select', defaultValue: 'C', options: CURVE_OPTIONS },
-      gevoeligheid: { label: 'Gevoeligheid (Δ)', type: 'select', defaultValue: '300mA', options: DIFF_GEVOELIGHEID },
-      diff_type: { label: 'Diff. type', type: 'select', defaultValue: 'A', options: DIFF_TYPES },
-      kring: { label: 'Kring', type: 'string', defaultValue: '' },
-    },
+    properties: automaatProperties(defaultType),
     Render: AutomaatRender,
-  },
+  })),
   {
     type: 'smeltveiligheid',
     category: 'beveiliging',

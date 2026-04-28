@@ -181,29 +181,54 @@ const ContactdoosCommunicatieRender = ({ state, properties }: SymbolRenderProps)
   );
 };
 
+interface CdPreset {
+  type: string;
+  name: string;
+  description: string;
+  polen?: string;
+  nulgeleider?: boolean;
+  pe?: boolean;
+  halfwaterdicht?: boolean;
+  schakelaar?: boolean;
+  aantal?: number;
+  tekst?: string;
+}
+
+const CONTACTDOOS_PRESETS: CdPreset[] = [
+  { type: 'contactdoos', name: 'Contactdoos', description: 'Standaard stopcontact 2P+A' },
+  { type: 'contactdoos_dubbel', name: 'Dubbele contactdoos', description: 'Dubbel stopcontact', aantal: 2 },
+  { type: 'contactdoos_drievoudig', name: 'Drievoudige contactdoos', description: 'Drievoudig stopcontact', aantal: 3 },
+  { type: 'contactdoos_h', name: 'Halfwaterdicht', description: 'Stopcontact halfwaterdicht (h)', halfwaterdicht: true },
+  { type: 'contactdoos_schakelaar', name: 'Met schakelaar', description: 'Stopcontact met schakelaar', schakelaar: true },
+  { type: 'contactdoos_kookplaat', name: 'Kookplaat (3P+N)', description: '3-fasen stopcontact met N+PE', polen: '3P+N', nulgeleider: true, tekst: '32A' },
+  { type: 'contactdoos_3p', name: 'Drie-fase (3P+PE)', description: 'Drie-fase stopcontact', polen: '3P', tekst: '16A' },
+];
+
+const contactdoosProperties = (preset: CdPreset) => ({
+  polen: { label: 'Polen', type: 'select' as const, defaultValue: preset.polen ?? '1P', options: POL_OPTIONS },
+  nulgeleider: { label: 'Nulgeleider (N)', type: 'boolean' as const, defaultValue: preset.nulgeleider ?? false },
+  pe: { label: 'Beschermingsgeleider (PE)', type: 'boolean' as const, defaultValue: preset.pe ?? true },
+  halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean' as const, defaultValue: preset.halfwaterdicht ?? false },
+  schakelaar: { label: 'Schakelaar ingebouwd', type: 'boolean' as const, defaultValue: preset.schakelaar ?? false },
+  transformator: { label: 'Transformator ingebouwd', type: 'boolean' as const, defaultValue: false },
+  in_verdeelbord: { label: 'In verdeelbord', type: 'boolean' as const, defaultValue: false },
+  aantal: { label: 'Aantal', type: 'number' as const, defaultValue: preset.aantal ?? 1 },
+  tekst: { label: 'Tekst', type: 'string' as const, defaultValue: preset.tekst ?? '' },
+  kring: { label: 'Kring', type: 'string' as const, defaultValue: '' },
+});
+
 export const stopcontactSymbols: SymbolDefinition[] = [
-  {
-    type: 'contactdoos',
-    category: 'stopcontacten',
-    name: 'Contactdoos',
-    description: 'Stopcontact 2P+A',
+  ...CONTACTDOOS_PRESETS.map((preset) => ({
+    type: preset.type,
+    category: 'stopcontacten' as const,
+    name: preset.name,
+    description: preset.description,
     width: 40,
     height: 50,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      polen: { label: 'Polen', type: 'select', defaultValue: '1P', options: POL_OPTIONS },
-      nulgeleider: { label: 'Nulgeleider (N)', type: 'boolean', defaultValue: false },
-      pe: { label: 'Beschermingsgeleider (PE)', type: 'boolean', defaultValue: true },
-      halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean', defaultValue: false },
-      schakelaar: { label: 'Schakelaar ingebouwd', type: 'boolean', defaultValue: false },
-      transformator: { label: 'Transformator ingebouwd', type: 'boolean', defaultValue: false },
-      in_verdeelbord: { label: 'In verdeelbord', type: 'boolean', defaultValue: false },
-      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
-      tekst: { label: 'Tekst', type: 'string', defaultValue: '' },
-      kring: { label: 'Kring', type: 'string', defaultValue: '' },
-    },
+    connectionPoints: [{ id: 'in', position: 'top' as const, x: 20, y: 0 }],
+    properties: contactdoosProperties(preset),
     Render: ContactdoosRender,
-  },
+  })),
   {
     type: 'contactdoos_communicatie',
     category: 'stopcontacten',

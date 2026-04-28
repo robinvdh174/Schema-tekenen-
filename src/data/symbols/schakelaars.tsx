@@ -169,28 +169,53 @@ const SchakelaarRender = ({ state, properties }: SymbolRenderProps) => {
   );
 };
 
-export const schakelaarSymbols: SymbolDefinition[] = [
-  {
-    type: 'schakelaar',
-    category: 'schakelaars',
-    name: 'Schakelaar',
-    description: 'Schakelaar — type bepaalt de variant',
-    width: 40,
-    height: 40,
-    connectionPoints: [
-      { id: 'in', position: 'top', x: 20, y: 0 },
-      { id: 'out', position: 'bottom', x: 20, y: 40 },
-    ],
-    properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Enkelpolig', options: TYPE_OPTIONS },
-      polen: { label: 'Aantal polen', type: 'select', defaultValue: '—', options: POL_OPTIONS },
-      adres: { label: 'Adres', type: 'string', defaultValue: '' },
-      halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean', defaultValue: false },
-      dimmer: { label: 'Met dimmer', type: 'boolean', defaultValue: false },
-      verklikker: { label: 'Verklikkerlamp', type: 'boolean', defaultValue: false },
-      aantal_knoppen: { label: 'Aantal knoppen', type: 'number', defaultValue: 1 },
-      kring: { label: 'Kring', type: 'string', defaultValue: '' },
-    },
-    Render: SchakelaarRender,
-  },
+type SchakelaarType =
+  | 'Enkelpolig'
+  | 'Dubbelpolig'
+  | 'Wissel'
+  | 'Dubbele wissel'
+  | 'Kruis'
+  | 'Dubbele aansteking'
+  | 'Dimmer'
+  | 'Drukknop'
+  | 'Rolluikschakelaar'
+  | 'Trekschakelaar';
+
+const PRESETS: { type: string; name: string; description: string; defaultType: SchakelaarType }[] = [
+  { type: 'schakelaar_enkel', name: 'Enkelpolig', description: 'Enkelpolige schakelaar', defaultType: 'Enkelpolig' },
+  { type: 'schakelaar_dubbel', name: 'Dubbelpolig', description: 'Dubbelpolige schakelaar', defaultType: 'Dubbelpolig' },
+  { type: 'schakelaar_wissel', name: 'Wissel', description: 'Wisselschakelaar', defaultType: 'Wissel' },
+  { type: 'schakelaar_dubbel_wissel', name: 'Dubbele wissel', description: 'Dubbele wisselschakelaar', defaultType: 'Dubbele wissel' },
+  { type: 'schakelaar_kruis', name: 'Kruis', description: 'Kruisschakelaar', defaultType: 'Kruis' },
+  { type: 'schakelaar_dubbele_aansteking', name: 'Dubbele aansteking', description: 'Twee aanstekingen vanaf één punt', defaultType: 'Dubbele aansteking' },
+  { type: 'schakelaar_dimmer', name: 'Dimmer', description: 'Lichtdimmer', defaultType: 'Dimmer' },
+  { type: 'schakelaar_drukknop', name: 'Drukknop', description: 'Drukknop / belknop', defaultType: 'Drukknop' },
+  { type: 'schakelaar_rolluik', name: 'Rolluik', description: 'Rolluikschakelaar (op/neer)', defaultType: 'Rolluikschakelaar' },
+  { type: 'schakelaar_trek', name: 'Trekschakelaar', description: 'Trekschakelaar', defaultType: 'Trekschakelaar' },
 ];
+
+const baseProperties = (defaultType: SchakelaarType) => ({
+  type: { label: 'Type', type: 'select' as const, defaultValue: defaultType, options: TYPE_OPTIONS },
+  polen: { label: 'Aantal polen', type: 'select' as const, defaultValue: '—', options: POL_OPTIONS },
+  adres: { label: 'Adres', type: 'string' as const, defaultValue: '' },
+  halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean' as const, defaultValue: false },
+  dimmer: { label: 'Met dimmer', type: 'boolean' as const, defaultValue: false },
+  verklikker: { label: 'Verklikkerlamp', type: 'boolean' as const, defaultValue: false },
+  aantal_knoppen: { label: 'Aantal knoppen', type: 'number' as const, defaultValue: 1 },
+  kring: { label: 'Kring', type: 'string' as const, defaultValue: '' },
+});
+
+export const schakelaarSymbols: SymbolDefinition[] = PRESETS.map(({ type, name, description, defaultType }) => ({
+  type,
+  category: 'schakelaars',
+  name,
+  description,
+  width: 40,
+  height: 40,
+  connectionPoints: [
+    { id: 'in', position: 'top', x: 20, y: 0 },
+    { id: 'out', position: 'bottom', x: 20, y: 40 },
+  ],
+  properties: baseProperties(defaultType),
+  Render: SchakelaarRender,
+}));

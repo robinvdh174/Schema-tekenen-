@@ -233,23 +233,39 @@ const TrillingsdetectorRender = ({ state }: SymbolRenderProps) => {
   );
 };
 
+const GELUIDSBRON_PRESETS: { type: string; name: string; description: string; defaultType: string }[] = [
+  { type: 'bel', name: 'Bel', description: 'Deurbel / belsignaal', defaultType: 'Bel' },
+  { type: 'sirene', name: 'Sirene', description: 'Alarmsirene', defaultType: 'Sirene' },
+  { type: 'hoorn', name: 'Hoorn', description: 'Hoorn', defaultType: 'Hoorn' },
+  { type: 'zoemer', name: 'Zoemer', description: 'Zoemer', defaultType: 'Zoemer' },
+];
+
+const BRAND_PRESETS: { type: string; name: string; description: string; defaultType: string }[] = [
+  { type: 'rookmelder', name: 'Rookmelder', description: 'Optische rookdetector', defaultType: 'Rookdetector' },
+  { type: 'warmtedetector', name: 'Warmtedetector', description: 'Thermische detector', defaultType: 'Warmtedetector' },
+  { type: 'vlamdetector', name: 'Vlamdetector', description: 'Vlamdetector', defaultType: 'Vlamdetector' },
+  { type: 'gasdetector', name: 'Gasdetector', description: 'CO / gasdetector', defaultType: 'Gasdetector' },
+  { type: 'manueel_brand', name: 'Manueel brandalarm', description: 'Handbediende drukknop', defaultType: 'Manueel' },
+  { type: 'straaldetector', name: 'Straaldetector', description: 'Straaldetector', defaultType: 'Straaldetector' },
+];
+
 export const diversenSymbols: SymbolDefinition[] = [
-  {
-    type: 'geluidsbron',
-    category: 'diversen',
-    name: 'Geluidsbron',
-    description: 'Bel / sirene / hoorn / zoemer',
+  ...GELUIDSBRON_PRESETS.map(({ type, name, description, defaultType }) => ({
+    type,
+    category: 'diversen' as const,
+    name,
+    description,
     width: 40,
     height: 40,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
+    connectionPoints: [{ id: 'in', position: 'top' as const, x: 20, y: 0 }],
     properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Bel', options: GELUIDSBRON_TYPES },
-      adres: { label: 'Adres', type: 'string', defaultValue: '' },
-      autonoom: { label: 'Autonoom', type: 'boolean', defaultValue: false },
-      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
+      type: { label: 'Type', type: 'select' as const, defaultValue: defaultType, options: GELUIDSBRON_TYPES },
+      adres: { label: 'Adres', type: 'string' as const, defaultValue: '' },
+      autonoom: { label: 'Autonoom', type: 'boolean' as const, defaultValue: false },
+      aantal: { label: 'Aantal', type: 'number' as const, defaultValue: 1 },
     },
     Render: GeluidsbronRender,
-  },
+  })),
   {
     type: 'intercom',
     category: 'diversen',
@@ -280,21 +296,21 @@ export const diversenSymbols: SymbolDefinition[] = [
     },
     Render: BewegingsdetectorRender,
   },
-  {
-    type: 'branddetector',
-    category: 'diversen',
-    name: 'Branddetector',
-    description: 'Rook / warmte / vlam / gas / manueel',
+  ...BRAND_PRESETS.map(({ type, name, description, defaultType }) => ({
+    type,
+    category: 'diversen' as const,
+    name,
+    description,
     width: 40,
     height: 32,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
+    connectionPoints: [{ id: 'in', position: 'top' as const, x: 20, y: 0 }],
     properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Rookdetector', options: BRAND_TYPES },
-      adres: { label: 'Adres', type: 'string', defaultValue: '' },
-      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
+      type: { label: 'Type', type: 'select' as const, defaultValue: defaultType, options: BRAND_TYPES },
+      adres: { label: 'Adres', type: 'string' as const, defaultValue: '' },
+      aantal: { label: 'Aantal', type: 'number' as const, defaultValue: 1 },
     },
     Render: BranddetectorRender,
-  },
+  })),
   {
     type: 'thermostaat',
     category: 'diversen',

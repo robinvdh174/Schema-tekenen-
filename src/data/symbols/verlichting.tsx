@@ -163,29 +163,47 @@ const LuidsprekerRender = ({ state, properties }: SymbolRenderProps) => {
   );
 };
 
+const LICHTPUNT_PRESETS: { type: string; name: string; description: string; defaultType: string; extra?: Record<string, string | boolean> }[] = [
+  { type: 'lichtpunt', name: 'Lichtpunt', description: 'Plafondlichtpunt (X)', defaultType: 'Lichtpunt' },
+  { type: 'lichtpunt_wand', name: 'Wandverlichting', description: 'Wandverlichting', defaultType: 'Wandverlichting', extra: { wandverlichting: true } },
+  { type: 'lichtpunt_spot', name: 'Spot', description: 'Inbouwspot', defaultType: 'Spot' },
+  { type: 'lichtpunt_tl', name: 'TL', description: 'TL-armatuur', defaultType: 'TL' },
+  { type: 'lichtpunt_led', name: 'LED', description: 'LED-armatuur', defaultType: 'LED' },
+  { type: 'lichtpunt_led_strip', name: 'LED-strip', description: 'LED-strip', defaultType: 'LED-strip' },
+  { type: 'lichtpunt_nood', name: 'Noodverlichting', description: 'Noodverlichtingsarmatuur', defaultType: 'Noodverlichting', extra: { noodverlichting: 'Decentraal' } },
+  { type: 'lichtpunt_signalisatie', name: 'Signalisatielamp', description: 'Signalisatielamp', defaultType: 'Signalisatielamp' },
+];
+
+const lichtpuntProperties = (defaultType: string, extra: Record<string, string | boolean> = {}) => ({
+  type: { label: 'Type', type: 'select' as const, defaultValue: defaultType, options: TYPE_OPTIONS },
+  aantal: { label: 'Aantal', type: 'number' as const, defaultValue: 1 },
+  adres: { label: 'Adres', type: 'string' as const, defaultValue: '' },
+  tekst: { label: 'Tekst', type: 'string' as const, defaultValue: '' },
+  halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean' as const, defaultValue: false },
+  wandverlichting: { label: 'Wandverlichting', type: 'boolean' as const, defaultValue: Boolean(extra.wandverlichting ?? false) },
+  noodverlichting: {
+    label: 'Noodverlichting',
+    type: 'select' as const,
+    defaultValue: String(extra.noodverlichting ?? 'Geen'),
+    options: ['Geen', 'Centraal', 'Decentraal'],
+  },
+  sensor: { label: 'Sensor ingebouwd', type: 'select' as const, defaultValue: 'Geen', options: ['Geen', 'Infrarood'] },
+  schakelaar: { label: 'Schakelaar ingebouwd', type: 'boolean' as const, defaultValue: false },
+  kring: { label: 'Kring', type: 'string' as const, defaultValue: '' },
+});
+
 export const verlichtingSymbols: SymbolDefinition[] = [
-  {
-    type: 'lichtpunt',
-    category: 'verlichting',
-    name: 'Lichtpunt',
-    description: 'Lichtpunt — type bepaalt de variant',
+  ...LICHTPUNT_PRESETS.map(({ type, name, description, defaultType, extra }) => ({
+    type,
+    category: 'verlichting' as const,
+    name,
+    description,
     width: 40,
     height: 44,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Lichtpunt', options: TYPE_OPTIONS },
-      aantal: { label: 'Aantal', type: 'number', defaultValue: 1 },
-      adres: { label: 'Adres', type: 'string', defaultValue: '' },
-      tekst: { label: 'Tekst', type: 'string', defaultValue: '' },
-      halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean', defaultValue: false },
-      wandverlichting: { label: 'Wandverlichting', type: 'boolean', defaultValue: false },
-      noodverlichting: { label: 'Noodverlichting', type: 'select', defaultValue: 'Geen', options: ['Geen', 'Centraal', 'Decentraal'] },
-      sensor: { label: 'Sensor ingebouwd', type: 'select', defaultValue: 'Geen', options: ['Geen', 'Infrarood'] },
-      schakelaar: { label: 'Schakelaar ingebouwd', type: 'boolean', defaultValue: false },
-      kring: { label: 'Kring', type: 'string', defaultValue: '' },
-    },
+    connectionPoints: [{ id: 'in', position: 'top' as const, x: 20, y: 0 }],
+    properties: lichtpuntProperties(defaultType, extra),
     Render: LichtpuntRender,
-  },
+  })),
   {
     type: 'luidspreker',
     category: 'verlichting',

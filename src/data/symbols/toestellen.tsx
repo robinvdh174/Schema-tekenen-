@@ -217,23 +217,58 @@ const KetelRender = ({ state, properties }: SymbolRenderProps) => {
   );
 };
 
+const TOESTEL_PRESETS: { type: string; name: string; description: string; defaultType: string }[] = [
+  { type: 'toestel_algemeen', name: 'Toestel (algemeen)', description: 'Vast aangesloten elektrisch toestel', defaultType: 'Algemeen' },
+  { type: 'toestel_kookfornuis', name: 'Kookfornuis', description: 'Elektrische kookplaat', defaultType: 'Kookfornuis' },
+  { type: 'toestel_oven', name: 'Elektrische oven', description: 'Elektrische oven', defaultType: 'Elektrische oven' },
+  { type: 'toestel_microgolf', name: 'Microgolfoven', description: 'Microgolfoven', defaultType: 'Microgolfoven' },
+  { type: 'toestel_stoomoven', name: 'Stoomoven', description: 'Stoomoven', defaultType: 'Stoomoven' },
+  { type: 'toestel_wasmachine', name: 'Wasmachine', description: 'Wasmachine', defaultType: 'Wasmachine' },
+  { type: 'toestel_droogkast', name: 'Droogkast', description: 'Droogkast', defaultType: 'Droogkast' },
+  { type: 'toestel_vaatwas', name: 'Vaatwasmachine', description: 'Vaatwasmachine', defaultType: 'Vaatwasmachine' },
+  { type: 'toestel_koelkast', name: 'Koelkast', description: 'Koelkast', defaultType: 'Koelkast' },
+  { type: 'toestel_diepvries', name: 'Diepvriezer', description: 'Diepvriezer', defaultType: 'Diepvriezer' },
+  { type: 'toestel_ventilator', name: 'Ventilator', description: 'Ventilator / afzuiging', defaultType: 'Ventilator' },
+  { type: 'toestel_laadstation', name: 'Laadstation auto', description: 'EV-laadstation', defaultType: 'Laadstation auto' },
+];
+
+const KETEL_PRESETS: { type: string; name: string; description: string; defaultEnergie: string }[] = [
+  { type: 'ketel_elektrisch', name: 'Ketel (elektrisch)', description: 'Elektrische verwarmingsketel', defaultEnergie: 'Elektriciteit' },
+  { type: 'ketel_gas', name: 'Ketel (gas)', description: 'Gasketel met ventilator', defaultEnergie: 'Gas (ventilator)' },
+  { type: 'ketel_gas_atm', name: 'Ketel (gas atm.)', description: 'Atmosferische gasketel', defaultEnergie: 'Gas (atmosferisch)' },
+  { type: 'ketel_vloeibaar', name: 'Ketel (mazout)', description: 'Vloeibare brandstof', defaultEnergie: 'Vloeibare brandstof' },
+  { type: 'ketel_vaste', name: 'Ketel (vaste br.)', description: 'Vaste brandstof', defaultEnergie: 'Vaste brandstof' },
+];
+
+const toestelProperties = (defaultType: string) => ({
+  type: { label: 'Type', type: 'select' as const, defaultValue: defaultType, options: TOESTEL_TYPES },
+  adres: { label: 'Adres', type: 'string' as const, defaultValue: '' },
+  vermogen: { label: 'Vermogen', type: 'string' as const, defaultValue: '' },
+  kring: { label: 'Kring', type: 'string' as const, defaultValue: '' },
+});
+
+const ketelProperties = (defaultEnergie: string) => ({
+  energiebron: {
+    label: 'Energiebron',
+    type: 'select' as const,
+    defaultValue: defaultEnergie,
+    options: ['Elektriciteit', 'Gas (ventilator)', 'Gas (atmosferisch)', 'Vloeibare brandstof', 'Vaste brandstof'],
+  },
+  adres: { label: 'Adres', type: 'string' as const, defaultValue: '' },
+});
+
 export const toestelSymbols: SymbolDefinition[] = [
-  {
-    type: 'toestel',
-    category: 'toestellen',
-    name: 'Toestel',
-    description: 'Vast aangesloten elektrisch toestel',
+  ...TOESTEL_PRESETS.map(({ type, name, description, defaultType }) => ({
+    type,
+    category: 'toestellen' as const,
+    name,
+    description,
     width: 40,
     height: 38,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      type: { label: 'Type', type: 'select', defaultValue: 'Algemeen', options: TOESTEL_TYPES },
-      adres: { label: 'Adres', type: 'string', defaultValue: '' },
-      vermogen: { label: 'Vermogen', type: 'string', defaultValue: '' },
-      kring: { label: 'Kring', type: 'string', defaultValue: '' },
-    },
+    connectionPoints: [{ id: 'in', position: 'top' as const, x: 20, y: 0 }],
+    properties: toestelProperties(defaultType),
     Render: ToestelRender,
-  },
+  })),
   {
     type: 'boiler',
     category: 'toestellen',
@@ -265,23 +300,15 @@ export const toestelSymbols: SymbolDefinition[] = [
     },
     Render: VerwarmingstoestelRender,
   },
-  {
-    type: 'ketel',
-    category: 'toestellen',
-    name: 'Ketel',
-    description: 'CV-ketel / verwarmingsketel',
+  ...KETEL_PRESETS.map(({ type, name, description, defaultEnergie }) => ({
+    type,
+    category: 'toestellen' as const,
+    name,
+    description,
     width: 40,
     height: 38,
-    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
-    properties: {
-      energiebron: {
-        label: 'Energiebron',
-        type: 'select',
-        defaultValue: 'Elektriciteit',
-        options: ['Elektriciteit', 'Gas (ventilator)', 'Gas (atmosferisch)', 'Vloeibare brandstof', 'Vaste brandstof'],
-      },
-      adres: { label: 'Adres', type: 'string', defaultValue: '' },
-    },
+    connectionPoints: [{ id: 'in', position: 'top' as const, x: 20, y: 0 }],
+    properties: ketelProperties(defaultEnergie),
     Render: KetelRender,
-  },
+  })),
 ];
