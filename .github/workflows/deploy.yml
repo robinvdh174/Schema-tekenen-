@@ -1,10 +1,15 @@
 name: Deploy to GitHub Pages
 
 on:
+  # Enkel de hoofdbranch publiceert naar GitHub Pages. Andere (feature-)branches
+  # mogen niet deployen — de github-pages omgeving staat dat ook niet toe — dus
+  # we triggeren hier niet meer op 'claude/**' om valse rode kruisjes en een
+  # race om de Pages-site te vermijden.
   push:
     branches:
       - main
-      - 'claude/**'
+      - master
+      - claude/arei-diagram-editor-luXIf
   workflow_dispatch:
 
 # Grant the workflow write access to Pages deployments and an OIDC token so the
