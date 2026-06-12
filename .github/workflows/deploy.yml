@@ -1,10 +1,13 @@
 name: Deploy to GitHub Pages
 
+# Slechts ÉÉN branch mag de live-site publiceren. Vroeger triggerde elke
+# 'claude/**'-branch deze deploy naar dezelfde GitHub Pages-site, waardoor een
+# oudere branch de nieuwste versie kon overschrijven. Door de trigger te
+# beperken tot deze ene publicatie-branch kan dat niet meer gebeuren.
 on:
   push:
     branches:
-      - main
-      - 'claude/**'
+      - claude/symbol-corrections-review-rn81ep
   workflow_dispatch:
 
 # Grant the workflow write access to Pages deployments and an OIDC token so the
@@ -57,6 +60,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Extra slot: publiceer enkel vanaf de aangewezen publicatie-branch, ook als
+    # de workflow ooit handmatig vanaf een andere ref wordt gestart.
+    if: github.ref == 'refs/heads/claude/symbol-corrections-review-rn81ep'
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
