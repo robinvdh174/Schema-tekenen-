@@ -1,8 +1,11 @@
-import { Cable, Info, RotateCw, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Cable, Info, MousePointerSquareDashed, RotateCw, Trash2, Zap } from 'lucide-react';
 import { useEditorStore } from '@/store/editorStore';
 import { useProjectStore } from '@/store/projectStore';
 import { getSymbolDefinition } from '@/data/symbols';
 import type { PlacedSymbol, PropertyValue } from '@/types/symbols';
+import { TEXT_FIELD_SUGGESTIONS } from '@/types/symbols';
+import { collectCircuits } from '@/utils/circuits';
 import type { EditorMode } from '@/types/canvas';
 import type { Wire, WireCableType, WireCrossSection } from '@/types/wire';
 import { WIRE_CABLE_TYPES, WIRE_CROSS_SECTIONS } from '@/types/wire';
@@ -32,12 +35,74 @@ export const PropertiesPanel = () => {
       ) : selectedWires.length === 1 && selectedSymbols.length === 0 ? (
         <WireEditor wire={selectedWires[0]} mode={mode} />
       ) : (
-        <div className="p-3 text-xs text-slate-400">
-          {selectedSymbols.length + selectedWires.length} items geselecteerd. Selecteer 1 symbool of
-          draad om eigenschappen te bewerken.
-        </div>
+        <MultiSelectEditor
+          symbols={selectedSymbols}
+          extraCount={selectedWires.length}
+          mode={mode}
+        />
       )}
     </aside>
+  );
+};
+
+/** Getoond bij meerdere geselecteerde items: ken samen een kring toe. */
+const MultiSelectEditor = ({
+  symbols,
+  extraCount,
+  mode,
+}: {
+  symbols: PlacedSymbol[];
+  extraCount: number;
+  mode: EditorMode;
+}) => {
+  const allSymbols = useProjectStore((s) =>
+    mode === 'eendraad' ? s.project.eendraad.symbols : s.project.situatie.symbols
+  );
+  const assignCircuit = useProjectStore((s) => s.assignCircuit);
+  const [kring, setKring] = useState('');
+  const circuitNames = collectCircuits(allSymbols).map((c) => c.name);
+  const assignable = symbols.filter((s) => s.properties.kring);
+
+  return (
+    <div className="space-y-4 p-3 text-xs">
+      <p className="text-slate-300">
+        {symbols.length + extraCount} items geselecteerd.
+      </p>
+      {assignable.length > 0 ? (
+        <div className="space-y-2 rounded-md border border-panel-border bg-panel-dark/50 p-3">
+          <p className="panel-heading flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5 text-accent" /> Kring toekennen
+          </p>
+          <p className="text-[11px] text-slate-500">
+            Zet {assignable.length} symbolen samen op dezelfde kring.
+          </p>
+          <input
+            value={kring}
+            onChange={(e) => setKring(e.target.value)}
+            list="multi-kring-suggest"
+            autoComplete="off"
+            placeholder="Bv. F"
+            className="w-full rounded-md border border-panel-border bg-panel-dark/60 px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:border-accent focus:outline-none"
+          />
+          <datalist id="multi-kring-suggest">
+            {circuitNames.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+          <button
+            onClick={() => assignCircuit(mode, assignable.map((s) => s.id), kring.trim())}
+            disabled={!kring.trim()}
+            className="btn-ghost w-full justify-center !text-accent disabled:opacity-40"
+          >
+            Toekennen aan {assignable.length} symbolen
+          </button>
+        </div>
+      ) : (
+        <p className="text-slate-400">
+          Selecteer 1 symbool of draad om de eigenschappen te bewerken.
+        </p>
+      )}
+    </div>
   );
 };
 
@@ -87,6 +152,106 @@ const EmptyState = () => {
           multiline
         />
       </div>
+
+      <CircuitManager />
+    </div>
+  );
+};
+
+/**
+ * Beheer van kringen: hernoem een kring overal in één keer (bv. B → F),
+ * en selecteer alle symbolen van een kring.
+ */
+const CircuitManager = () => {
+  const mode = useEditorStore((s) => s.mode);
+  const symbols = useProjectStore((s) =>
+    mode === 'eendraad' ? s.project.eendraad.symbols : s.project.situatie.symbols
+  );
+  const renameCircuit = useProjectStore((s) => s.renameCircuit);
+  const setSelection = useEditorStore((s) => s.setSelection);
+  const clearSelection = useEditorStore((s) => s.clearSelection);
+  const circuits = collectCircuits(symbols);
+
+  if (circuits.length === 0) {
+    return (
+      <div className="space-y-2">
+        <p className="panel-heading flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5 text-accent" /> Kringen
+        </p>
+        <p className="rounded-md border border-panel-border bg-panel-dark/50 p-3 text-xs text-slate-400">
+          Nog geen kringen. Geef een symbool een kring (veld "Kring") en die verschijnt hier. Je
+          kan een kring dan in één keer hernoemen, bv. van B naar F.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="panel-heading flex items-center gap-1.5">
+        <Zap className="h-3.5 w-3.5 text-accent" /> Kringen
+      </p>
+      <p className="text-[11px] text-slate-500">
+        Wijzig de naam om een kring overal te hernoemen (bv. B → F).
+      </p>
+      <div className="space-y-1.5">
+        {circuits.map((c) => (
+          <CircuitRow
+            key={c.name}
+            name={c.name}
+            count={c.count}
+            onRename={(next) => renameCircuit(mode, c.name, next)}
+            onSelect={() => {
+              if (c.symbolIds.length > 0) setSelection(c.symbolIds);
+              else clearSelection();
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const CircuitRow = ({
+  name,
+  count,
+  onRename,
+  onSelect,
+}: {
+  name: string;
+  count: number;
+  onRename: (next: string) => void;
+  onSelect: () => void;
+}) => {
+  const [draft, setDraft] = useState(name);
+  const commit = () => {
+    const next = draft.trim();
+    if (next && next !== name) onRename(next);
+    else setDraft(name);
+  };
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border border-panel-border bg-panel-dark/50 px-2 py-1.5">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-accent/15 text-[11px] font-semibold text-accent">
+        {count}
+      </span>
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') setDraft(name);
+        }}
+        className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-100 hover:border-panel-border focus:border-accent focus:bg-panel-dark focus:outline-none"
+        title="Kringnaam — wijzig om overal te hernoemen"
+      />
+      <button
+        onClick={onSelect}
+        className="btn-icon shrink-0"
+        title={`Selecteer alle ${count} symbolen van kring ${name}`}
+      >
+        <MousePointerSquareDashed className="h-4 w-4" />
+      </button>
     </div>
   );
 };
@@ -97,6 +262,15 @@ const SymbolEditor = ({ symbol, mode }: { symbol: PlacedSymbol; mode: EditorMode
   const rotateSymbol = useProjectStore((s) => s.rotateSymbol);
   const removeSymbols = useProjectStore((s) => s.removeSymbols);
   const clearSelection = useEditorStore((s) => s.clearSelection);
+  const allSymbols = useProjectStore((s) =>
+    mode === 'eendraad' ? s.project.eendraad.symbols : s.project.situatie.symbols
+  );
+  const circuitNames = collectCircuits(allSymbols).map((c) => c.name);
+
+  const suggestionsFor = (key: string): string[] | undefined => {
+    if (key === 'kring') return circuitNames;
+    return TEXT_FIELD_SUGGESTIONS[key];
+  };
 
   if (!def) {
     return (
@@ -129,6 +303,7 @@ const SymbolEditor = ({ symbol, mode }: { symbol: PlacedSymbol; mode: EditorMode
                 key={key}
                 propKey={key}
                 value={prop}
+                suggestions={suggestionsFor(key)}
                 onChange={(v) => updateSymbolProperty(mode, symbol.id, key, v)}
               />
             ))}
@@ -274,9 +449,11 @@ interface PropertyFieldProps {
   propKey: string;
   value: PropertyValue;
   onChange: (v: PropertyValue['value']) => void;
+  /** Voorgestelde waarden voor vrije-tekstvelden (combobox). */
+  suggestions?: string[];
 }
 
-const PropertyField = ({ propKey, value, onChange }: PropertyFieldProps) => {
+const PropertyField = ({ propKey, value, onChange, suggestions }: PropertyFieldProps) => {
   const baseClass =
     'w-full rounded-md border border-panel-border bg-panel-dark/60 px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:border-accent focus:outline-none';
 
@@ -330,6 +507,8 @@ const PropertyField = ({ propKey, value, onChange }: PropertyFieldProps) => {
     );
   }
 
+  const list = suggestions ?? value.suggestions;
+  const listId = list && list.length > 0 ? `sugg-${propKey}` : undefined;
   return (
     <label className="block">
       <span className="mb-1 block text-[11px] font-medium text-slate-400">
@@ -341,8 +520,17 @@ const PropertyField = ({ propKey, value, onChange }: PropertyFieldProps) => {
         value={String(value.value ?? '')}
         onChange={(e) => onChange(e.target.value)}
         className={baseClass}
-        placeholder={propKey}
+        placeholder={list && list.length > 0 ? 'Kies of typ…' : propKey}
+        list={listId}
+        autoComplete="off"
       />
+      {listId ? (
+        <datalist id={listId}>
+          {list!.map((opt) => (
+            <option key={opt} value={opt} />
+          ))}
+        </datalist>
+      ) : null}
     </label>
   );
 };

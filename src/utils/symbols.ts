@@ -16,6 +16,7 @@ export const createDefaultProperties = (
       type: def.type,
       value: def.defaultValue,
       options: def.options,
+      suggestions: def.suggestions,
       unit: def.unit,
     };
   }
