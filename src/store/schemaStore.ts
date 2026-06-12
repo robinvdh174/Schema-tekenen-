@@ -162,10 +162,11 @@ interface SchemaState {
   addChild: (parentId: string, kind: string) => void;
   /**
    * Plaatst een symbool uit het palet op de slimste plek (zie
-   * resolveInsertionParent). Geeft het id van de nieuwe node terug, of `null`
-   * wanneer het type hier niet geplaatst kan worden.
+   * resolveInsertionParent), eventueel met props-overrides (bv. het type
+   * schakelaar). Geeft het id van de nieuwe node terug, of `null` wanneer
+   * het type hier niet geplaatst kan worden.
    */
-  addComponent: (kind: string) => string | null;
+  addComponent: (kind: string, props?: Record<string, PropValue>) => string | null;
   removeSelected: () => void;
   duplicateSelected: () => void;
   moveSelected: (direction: -1 | 1) => void;
@@ -251,11 +252,11 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
       );
     },
 
-    addComponent: (kind) => {
+    addComponent: (kind, props) => {
       const { doc, selectedId } = get();
       const parent = resolveInsertionParent(doc.tree, selectedId, kind);
       if (!parent) return null;
-      const child = createNode(kind, defaultProps(kind));
+      const child = createNode(kind, { ...defaultProps(kind), ...props });
       commit(
         (d) => ({
           ...d,

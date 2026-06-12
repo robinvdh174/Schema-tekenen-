@@ -124,6 +124,31 @@ const CURVES = ['B', 'C', 'D'];
 const DIFF_MA = ['10mA', '30mA', '100mA', '300mA', '500mA'];
 const DIFF_TYPE = ['A', 'AC', 'B', 'F'];
 
+export const SCHAKELAAR_TYPES = [
+  'Enkelpolig',
+  'Tweepolig',
+  'Driepolig',
+  'Wisselschakelaar',
+  'Kruisschakelaar',
+  'Dubbele aansteking',
+  'Dimmer',
+  'Wissel + dimmer',
+  'Drukknop',
+  'Rolluikschakelaar',
+  'Bewegingsmelder',
+];
+
+export const LICHTPUNT_TYPES = ['Lichtpunt', 'LED', 'Spot', 'TL-armatuur'];
+
+export const RELAIS_TYPES = [
+  'Teleruptor',
+  'Relais',
+  'Minuterie',
+  'Thermostaat',
+  'Tijdschakelaar',
+  'Dimmer (module)',
+];
+
 export const TOESTEL_TYPES = [
   'Wasmachine',
   'Droogkast',
@@ -332,7 +357,7 @@ export const CATALOG: KindDef[] = [
         key: 'type',
         label: 'Type',
         type: 'select',
-        options: ['Teleruptor', 'Relais', 'Minuterie', 'Thermostaat', 'Tijdschakelaar', 'Dimmer (module)'],
+        options: RELAIS_TYPES,
         default: 'Teleruptor',
       },
       labelProp('Bv. verlichting inkom'),
@@ -373,7 +398,7 @@ export const CATALOG: KindDef[] = [
         key: 'type',
         label: 'Type',
         type: 'select',
-        options: ['Lichtpunt', 'LED', 'Spot', 'TL-armatuur'],
+        options: LICHTPUNT_TYPES,
         default: 'Lichtpunt',
       },
       { key: 'aantal', label: 'Aantal', type: 'number', default: 1 },
@@ -393,19 +418,7 @@ export const CATALOG: KindDef[] = [
         key: 'type',
         label: 'Type',
         type: 'select',
-        options: [
-          'Enkelpolig',
-          'Tweepolig',
-          'Driepolig',
-          'Wisselschakelaar',
-          'Kruisschakelaar',
-          'Dubbele aansteking',
-          'Dimmer',
-          'Wissel + dimmer',
-          'Drukknop',
-          'Rolluikschakelaar',
-          'Bewegingsmelder',
-        ],
+        options: SCHAKELAAR_TYPES,
         default: 'Enkelpolig',
       },
       { key: 'halfwaterdicht', label: 'Halfwaterdicht (h)', type: 'boolean', default: false },
@@ -449,21 +462,6 @@ export const CATALOG: KindDef[] = [
   },
 ];
 
-/**
- * Categorieën in de volgorde waarin ze in het symbolenpalet (linkerpaneel)
- * getoond worden, met een leesbare titel.
- */
-export const CATEGORY_META: { id: Category; label: string }[] = [
-  { id: 'voeding', label: 'Voeding & meting' },
-  { id: 'bord', label: 'Verdeelbord' },
-  { id: 'beveiliging', label: 'Beveiliging & sturing' },
-  { id: 'verbruiker', label: 'Verbruikers' },
-];
-
-/** Alle componenttypes van een categorie (voor het symbolenpalet). */
-export const kindsByCategory = (category: Category): KindDef[] =>
-  CATALOG.filter((def) => def.category === category);
-
 const KIND_MAP = new Map(CATALOG.map((def) => [def.kind, def]));
 
 export const kindDef = (kind: string): KindDef => {
@@ -479,6 +477,88 @@ export const allowedChildKinds = (parentKind: string): KindDef[] => {
 
 export const defaultProps = (kind: string): Record<string, PropValue> =>
   Object.fromEntries(kindDef(kind).props.map((p) => [p.key, p.default]));
+
+/* ------------------------------------------------------------- het palet ---
+ * Het symbolenpalet (linkerpaneel) toont één tegel per symboolvariant, met
+ * het echte AREI-symbool als voorbeeld. Een variant is een componenttype
+ * (kind) plus eventuele props-overrides — zo is bv. elke schakelaarsoort
+ * meteen als eigen symbool kiesbaar, zonder nadien rechts het type te
+ * moeten aanpassen.
+ * ------------------------------------------------------------------------- */
+
+export interface PaletteItem {
+  /** Unieke sleutel binnen het palet. */
+  id: string;
+  kind: string;
+  label: string;
+  description: string;
+  /** Props-overrides bovenop de standaardwaarden (bv. het type schakelaar). */
+  props?: Record<string, PropValue>;
+}
+
+export interface PaletteGroup {
+  id: string;
+  label: string;
+  items: PaletteItem[];
+}
+
+const baseItem = (kind: string): PaletteItem => {
+  const def = kindDef(kind);
+  return { id: kind, kind, label: def.label, description: def.description };
+};
+
+const typeItem = (kind: string, type: string): PaletteItem => ({
+  id: `${kind}:${type}`,
+  kind,
+  label: type,
+  description: `${kindDef(kind).label} — ${type}`,
+  props: { type },
+});
+
+export const PALETTE_GROUPS: PaletteGroup[] = [
+  {
+    id: 'voeding',
+    label: 'Voeding & meting',
+    items: [baseItem('aansluiting'), baseItem('teller'), baseItem('bord')],
+  },
+  {
+    id: 'beveiliging',
+    label: 'Beveiliging',
+    items: [
+      baseItem('automaat'),
+      baseItem('differentieel'),
+      baseItem('diffautomaat'),
+      baseItem('smeltzekering'),
+      baseItem('hoofdschakelaar'),
+      baseItem('overspanning'),
+    ],
+  },
+  {
+    id: 'stopcontacten',
+    label: 'Stopcontacten & aansluitingen',
+    items: [baseItem('stopcontact'), baseItem('aansluitpunt'), baseItem('aftakdoos')],
+  },
+  {
+    id: 'schakelaars',
+    label: 'Schakelaars',
+    items: SCHAKELAAR_TYPES.map((t) => typeItem('schakelaar', t)),
+  },
+  {
+    id: 'verlichting',
+    label: 'Verlichting',
+    items: LICHTPUNT_TYPES.map((t) => typeItem('lichtpunt', t)),
+  },
+  {
+    id: 'sturing',
+    label: 'Relais & sturing',
+    items: RELAIS_TYPES.map((t) => typeItem('relais', t)),
+  },
+  {
+    id: 'toestellen',
+    label: 'Vaste toestellen',
+    items: TOESTEL_TYPES.map((t) => typeItem('toestel', t)),
+  },
+];
 
 /** Korte beschrijvende titel van een node voor de boomweergave. */
 export const nodeTitle = (node: SchemaNode): string => {

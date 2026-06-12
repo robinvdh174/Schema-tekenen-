@@ -893,7 +893,9 @@ const HOverspanning = ({ placed }: { placed: PlacedNode }) => (
 
 /* ====================================================================== */
 
-const glyphFor = (placed: PlacedNode): JSX.Element => {
+/** Geeft de symbool-tekening van een component; ook gebruikt door het
+ *  symbolenpalet om een live voorbeeld van elk symbool te tonen. */
+export const glyphFor = (placed: PlacedNode): JSX.Element => {
   const { node, orient } = placed;
   if (orient === 'v') {
     switch (node.kind) {
