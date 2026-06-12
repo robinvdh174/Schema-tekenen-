@@ -1,66 +1,22 @@
-name: Deploy to GitHub Pages
+name: Deploy (uitgeschakeld op deze branch)
+
+# Deze branch publiceert NIET langer naar GitHub Pages.
+#
+# De live-site (robinvdh174.github.io) wordt uitsluitend gepubliceerd vanaf de
+# branch 'claude/symbol-corrections-review-rn81ep'. Vroeger triggerde elke
+# claude/**-branch een deploy naar dezelfde site, waardoor een oudere versie de
+# nieuwste kon overschrijven. Daarom is de deploy hier uitgeschakeld: er is geen
+# push-trigger meer en de job kan niet publiceren.
 
 on:
-  # Enkel de hoofdbranch publiceert naar GitHub Pages. Andere (feature-)branches
-  # mogen niet deployen — de github-pages omgeving staat dat ook niet toe — dus
-  # we triggeren hier niet meer op 'claude/**' om valse rode kruisjes en een
-  # race om de Pages-site te vermijden.
-  push:
-    branches:
-      - main
-      - master
-      - claude/arei-diagram-editor-luXIf
   workflow_dispatch:
 
-# Grant the workflow write access to Pages deployments and an OIDC token so the
-# deploy-pages action can authenticate.
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-# Only one deploy in flight at a time; skip stale ones.
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
-  build:
+  uitgeschakeld:
     runs-on: ubuntu-latest
+    if: false
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build (GitHub Pages)
-        env:
-          DEPLOY_TARGET: gh-pages
-        run: npm run build
-
-      - name: Ensure SPA 404 fallback
-        run: cp dist/index.html dist/404.html
-
-      - name: Configure Pages (and auto-enable if needed)
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - run: echo "Deploy is uitgeschakeld op deze branch."
