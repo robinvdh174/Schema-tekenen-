@@ -10,14 +10,14 @@ export type SymbolCategory =
   | 'toestellen'
   | 'diversen';
 
-export const SYMBOL_CATEGORIES: { id: SymbolCategory; label: string }[] = [
-  { id: 'voeding', label: 'Voeding & Meting' },
-  { id: 'beveiliging', label: 'Beveiliging' },
-  { id: 'stopcontacten', label: 'Contactdozen' },
-  { id: 'schakelaars', label: 'Schakelaars' },
-  { id: 'verlichting', label: 'Verlichting' },
-  { id: 'toestellen', label: 'Toestellen' },
-  { id: 'diversen', label: 'Diversen' },
+export const SYMBOL_CATEGORIES: { id: SymbolCategory; label: string; short: string }[] = [
+  { id: 'voeding', label: 'Voeding & Meting', short: 'Voeding' },
+  { id: 'beveiliging', label: 'Beveiliging', short: 'Beveiliging' },
+  { id: 'stopcontacten', label: 'Contactdozen', short: 'Contacten' },
+  { id: 'schakelaars', label: 'Schakelaars', short: 'Schakelaars' },
+  { id: 'verlichting', label: 'Verlichting', short: 'Licht' },
+  { id: 'toestellen', label: 'Toestellen', short: 'Toestellen' },
+  { id: 'diversen', label: 'Diversen', short: 'Diversen' },
 ];
 
 export type PropertyType = 'number' | 'string' | 'select' | 'boolean';
@@ -27,6 +27,8 @@ export interface PropertyDefinition {
   type: PropertyType;
   defaultValue: string | number | boolean;
   options?: string[];
+  /** Voorgestelde waarden voor vrije-tekstvelden (combobox: kiezen of zelf typen). */
+  suggestions?: string[];
   unit?: string;
 }
 
@@ -35,8 +37,39 @@ export interface PropertyValue {
   type: PropertyType;
   value: string | number | boolean;
   options?: string[];
+  suggestions?: string[];
   unit?: string;
 }
+
+/** Veelgebruikte kabeltypes (AREI) als suggesties bij tekstvelden. */
+export const CABLE_TYPE_SUGGESTIONS = [
+  'XVB 2x1.5',
+  'XVB 3G1.5',
+  'XVB 3G2.5',
+  'XVB 5G1.5',
+  'XVB 5G2.5',
+  'XVB 5G6',
+  'VOB 1.5',
+  'VOB 2.5',
+  'VOB 6',
+  'EXVB 5G10',
+  'VVB 3G1.5',
+  'UTP Cat6',
+];
+
+/** Veelgebruikte amperages als suggesties. */
+export const AMPERAGE_SUGGESTIONS = ['10A', '16A', '20A', '25A', '32A', '40A', '63A'];
+
+/**
+ * Standaardsuggesties voor vrije-tekstvelden, gegroepeerd per veldnaam.
+ * Worden gebruikt in het eigenschappen-paneel om een keuzelijst aan te bieden.
+ */
+export const TEXT_FIELD_SUGGESTIONS: Record<string, string[]> = {
+  tekst: [...AMPERAGE_SUGGESTIONS, ...CABLE_TYPE_SUGGESTIONS],
+  amperage: AMPERAGE_SUGGESTIONS,
+  adres: [],
+  weerstand: ['< 30 Ω', '< 100 Ω'],
+};
 
 export type ConnectionSide = 'top' | 'bottom' | 'left' | 'right';
 

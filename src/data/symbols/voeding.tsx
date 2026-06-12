@@ -116,7 +116,74 @@ const TellerRender = ({ state, properties }: SymbolRenderProps) => {
   );
 };
 
+/* --- Verdeelbord (kader met naam) --------------------------------------- *
+ * Een verdeelbord/verdeelkast als plaatsbaar kader. Je kan er meerdere
+ * plaatsen (bv. "Hoofdbord" en een 2de bord "Garage") en elk een naam geven.
+ * ----------------------------------------------------------------------- */
+const VerdeelbordRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const naam = String(properties.naam?.value ?? 'Verdeelbord');
+  const locatie = String(properties.locatie?.value ?? '');
+  const titel = locatie ? `${naam} — ${locatie}` : naam;
+  const w = 200;
+  const h = 130;
+  return (
+    <Group>
+      {/* Kader van het bord (streepjeslijn = bordbegrenzing) */}
+      <Rect
+        x={0}
+        y={0}
+        width={w}
+        height={h}
+        stroke={s}
+        strokeWidth={STROKE_WIDTH}
+        dash={[6, 4]}
+        cornerRadius={3}
+        fill="transparent"
+      />
+      {/* Titelbalk */}
+      <Line points={[0, 20, w, 20]} stroke={s} strokeWidth={STROKE_WIDTH} />
+      <Text
+        x={6}
+        y={5}
+        width={w - 12}
+        text={titel}
+        fontFamily={FONT_FAMILY}
+        fontSize={12}
+        fontStyle="700"
+        fill={s}
+      />
+      {/* Voedingsaansluiting bovenaan */}
+      <Line points={[20, -10, 20, 0]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+    </Group>
+  );
+};
+
 export const voedingSymbols: SymbolDefinition[] = [
+  {
+    type: 'verdeelbord',
+    category: 'voeding',
+    name: 'Verdeelbord',
+    description: 'Verdeelbord / verdeelkast (kader)',
+    width: 200,
+    height: 130,
+    connectionPoints: [{ id: 'in', position: 'top', x: 20, y: 0 }],
+    properties: {
+      naam: {
+        label: 'Naam',
+        type: 'string',
+        defaultValue: 'Hoofdbord',
+        suggestions: ['Hoofdbord', 'Verdeelbord 1', 'Verdeelbord 2', 'Onderverdeelbord'],
+      },
+      locatie: {
+        label: 'Locatie',
+        type: 'string',
+        defaultValue: '',
+        suggestions: ['Garage', 'Keuken', 'Berging', 'Kelder', 'Zolder', 'Verdieping', 'Tuinhuis'],
+      },
+    },
+    Render: VerdeelbordRender,
+  },
   {
     type: 'aansluitpunt',
     category: 'voeding',

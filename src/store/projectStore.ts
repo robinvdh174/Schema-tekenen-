@@ -41,6 +41,11 @@ interface ProjectState {
   removeSymbols: (mode: EditorMode, ids: string[]) => void;
   getSymbols: (mode: EditorMode) => PlacedSymbol[];
 
+  /** Hernoem een kring overal: alle symbolen met kring `from` krijgen kring `to`. */
+  renameCircuit: (mode: EditorMode, from: string, to: string) => void;
+  /** Ken een kring toe aan een set symbolen. */
+  assignCircuit: (mode: EditorMode, ids: string[], kring: string) => void;
+
   addWire: (mode: EditorMode, wire: Wire) => void;
   updateWire: (mode: EditorMode, id: string, updates: Partial<Wire>) => void;
   removeWires: (mode: EditorMode, ids: string[]) => void;
@@ -176,6 +181,53 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             symbols: section.symbols.filter((s) => !idSet.has(s.id)),
           },
         }),
+        dirty: true,
+      };
+    }),
+
+  renameCircuit: (mode, from, to) =>
+    set((state) => {
+      const trimmedTo = to.trim();
+      if (from === trimmedTo) return state;
+      const key = modeKey(mode);
+      const section = state.project[key];
+      let changed = false;
+      const symbols = section.symbols.map((s) => {
+        const prop = s.properties.kring;
+        if (!prop || String(prop.value) !== from) return s;
+        changed = true;
+        return {
+          ...s,
+          properties: { ...s.properties, kring: { ...prop, value: trimmedTo } },
+        };
+      });
+      if (!changed) return state;
+      return {
+        project: bumpTimestamp({ ...state.project, [key]: { ...section, symbols } }),
+        dirty: true,
+      };
+    }),
+
+  assignCircuit: (mode, ids, kring) =>
+    set((state) => {
+      if (ids.length === 0) return state;
+      const key = modeKey(mode);
+      const section = state.project[key];
+      const idSet = new Set(ids);
+      let changed = false;
+      const symbols = section.symbols.map((s) => {
+        if (!idSet.has(s.id)) return s;
+        const prop = s.properties.kring;
+        if (!prop) return s;
+        changed = true;
+        return {
+          ...s,
+          properties: { ...s.properties, kring: { ...prop, value: kring } },
+        };
+      });
+      if (!changed) return state;
+      return {
+        project: bumpTimestamp({ ...state.project, [key]: { ...section, symbols } }),
         dirty: true,
       };
     }),
