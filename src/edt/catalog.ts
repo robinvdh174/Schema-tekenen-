@@ -16,7 +16,97 @@ export interface PropDef {
   default: PropValue;
   /** Hint die onder het veld getoond wordt. */
   hint?: string;
+  /**
+   * Voorgestelde waarden voor een vrij tekstveld: de gebruiker kan kiezen uit
+   * de lijst of zelf iets typen (combobox via datalist). Bv. kabeltypes.
+   */
+  suggestions?: string[];
 }
+
+/* --------------------------------------------------- voorgestelde waarden ---
+ * Lijsten met veelgebruikte waarden zodat de gebruiker bij tekstvelden kan
+ * kiezen i.p.v. alles te typen (kabeltype, lokaal, kringnummer …).
+ * ------------------------------------------------------------------------- */
+
+/** Veelgebruikte kabeltypes volgens AREI. */
+export const CABLE_SUGGESTIONS = [
+  'XVB 2x1,5',
+  'XVB 3G1,5',
+  'XVB 3G2,5',
+  'XVB 5G1,5',
+  'XVB 5G2,5',
+  'XVB 5G4',
+  'XVB 5G6',
+  'XVB 5G10',
+  'EXVB 4G10',
+  'EXVB 4G16',
+  'EXVB 4G25',
+  'VOB 1,5',
+  'VOB 2,5',
+  'VOB 6',
+  'VOB 10',
+  'VOB 16',
+  'UTP Cat6',
+];
+
+/** Voorgestelde kringnummers/-letters. */
+export const KRINGNR_SUGGESTIONS = [
+  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+  'A', 'B', 'C', 'D', 'E', 'F',
+];
+
+/** Veelvoorkomende lokalen/ruimtes voor het omschrijvingsveld. */
+export const LOKAAL_SUGGESTIONS = [
+  'Inkom',
+  'Hal',
+  'Nachthal',
+  'Living',
+  'Keuken',
+  'Eetkamer',
+  'Bureau',
+  'Berging',
+  'Wasplaats',
+  'Garage',
+  'Kelder',
+  'Zolder',
+  'Badkamer',
+  'Wc',
+  'Slaapkamer 1',
+  'Slaapkamer 2',
+  'Slaapkamer 3',
+  'Dressing',
+  'Terras',
+  'Tuin',
+  'Tuinhuis',
+  'Carport',
+  'Veranda',
+];
+
+/** Voorgestelde namen voor een verdeelbord. */
+export const BORD_NAAM_SUGGESTIONS = [
+  'Hoofdbord',
+  'Verdeelbord',
+  'Verdeelbord garage',
+  'Verdeelbord kelder',
+  'Verdeelbord zolder',
+  'Verdeelbord verdieping',
+  'Onderverdeelbord',
+  'Bord tuinhuis',
+];
+
+/** Voorgestelde vermogens voor een vast toestel. */
+export const VERMOGEN_SUGGESTIONS = [
+  '1000 W',
+  '1500 W',
+  '2000 W',
+  '2200 W',
+  '3000 W',
+  '3500 W',
+  '4600 W',
+  '7400 W',
+  '11 kW',
+  '22 kW',
+];
 
 export interface KindDef {
   kind: string;
@@ -67,6 +157,27 @@ const labelProp = (hint = 'Bv. keuken, living, slaapkamer 1 …'): PropDef => ({
   type: 'text',
   default: '',
   hint,
+  suggestions: LOKAAL_SUGGESTIONS,
+});
+
+/** Kabelveld met voorgestelde AREI-kabeltypes. */
+const cableProp = (label = 'Kabel kring', def = ''): PropDef => ({
+  key: 'kabel',
+  label,
+  type: 'text',
+  default: def,
+  hint: 'Kies een kabeltype of typ zelf',
+  suggestions: CABLE_SUGGESTIONS,
+});
+
+/** Kringnummerveld met voorgestelde nummers/letters (bv. B → F). */
+const kringnrProp = (): PropDef => ({
+  key: 'kringnr',
+  label: 'Kringnummer / -letter',
+  type: 'text',
+  default: '',
+  hint: 'Leeg = automatisch. Kies bv. B of F om de kring te (her)benoemen.',
+  suggestions: KRINGNR_SUGGESTIONS,
 });
 
 export const CATALOG: KindDef[] = [
@@ -85,7 +196,7 @@ export const CATALOG: KindDef[] = [
         options: ['1F 230V', '2F 230V', '3F 230V', '3F 400V + N'],
         default: '3F 400V + N',
       },
-      { key: 'kabel', label: 'Voedingskabel', type: 'text', default: 'EXVB 4G10' },
+      cableProp('Voedingskabel', 'EXVB 4G10'),
       { key: 'label', label: 'Omschrijving', type: 'text', default: 'Aansluiting netbeheerder' },
     ],
   },
@@ -112,8 +223,22 @@ export const CATALOG: KindDef[] = [
     category: 'bord',
     childCategories: ['beveiliging'],
     props: [
-      { key: 'naam', label: 'Naam bord', type: 'text', default: 'Verdeelbord' },
-      { key: 'lokaal', label: 'Plaats', type: 'text', default: '', hint: 'Bv. garage, berging …' },
+      {
+        key: 'naam',
+        label: 'Naam bord',
+        type: 'text',
+        default: 'Verdeelbord',
+        hint: 'Bv. Hoofdbord of Verdeelbord garage',
+        suggestions: BORD_NAAM_SUGGESTIONS,
+      },
+      {
+        key: 'lokaal',
+        label: 'Plaats',
+        type: 'text',
+        default: '',
+        hint: 'Bv. garage, berging …',
+        suggestions: LOKAAL_SUGGESTIONS,
+      },
       { key: 'geaard', label: 'Aardingssymbool tonen', type: 'boolean', default: false },
     ],
   },
@@ -129,8 +254,8 @@ export const CATALOG: KindDef[] = [
       { key: 'polen', label: 'Polen', type: 'select', options: POLEN, default: '2P' },
       { key: 'ampere', label: 'Stroomsterkte', type: 'select', options: AMPERE, default: '16A' },
       { key: 'curve', label: 'Curve', type: 'select', options: CURVES, default: 'C' },
-      { key: 'kabel', label: 'Kabel kring', type: 'text', default: 'XVB 3G2,5' },
-      { key: 'kringnr', label: 'Kringnummer', type: 'text', default: '', hint: 'Leeg = automatisch nummeren' },
+      cableProp('Kabel kring', 'XVB 3G2,5'),
+      kringnrProp(),
       labelProp('Bv. stopcontacten keuken'),
     ],
   },
@@ -146,8 +271,8 @@ export const CATALOG: KindDef[] = [
       { key: 'gevoeligheid', label: 'Gevoeligheid', type: 'select', options: DIFF_MA, default: '300mA' },
       { key: 'difftype', label: 'Type', type: 'select', options: DIFF_TYPE, default: 'A' },
       { key: 'selectief', label: 'Selectief (S)', type: 'boolean', default: false },
-      { key: 'kabel', label: 'Kabel', type: 'text', default: '' },
-      { key: 'kringnr', label: 'Kringnummer', type: 'text', default: '', hint: 'Leeg = automatisch nummeren' },
+      cableProp('Kabel', ''),
+      kringnrProp(),
       labelProp('Bv. natte kringen'),
     ],
   },
@@ -164,8 +289,8 @@ export const CATALOG: KindDef[] = [
       { key: 'gevoeligheid', label: 'Gevoeligheid', type: 'select', options: DIFF_MA, default: '30mA' },
       { key: 'difftype', label: 'Type', type: 'select', options: DIFF_TYPE, default: 'A' },
       { key: 'selectief', label: 'Selectief (S)', type: 'boolean', default: false },
-      { key: 'kabel', label: 'Kabel kring', type: 'text', default: 'XVB 3G2,5' },
-      { key: 'kringnr', label: 'Kringnummer', type: 'text', default: '', hint: 'Leeg = automatisch nummeren' },
+      cableProp('Kabel kring', 'XVB 3G2,5'),
+      kringnrProp(),
       labelProp(),
     ],
   },
@@ -178,8 +303,8 @@ export const CATALOG: KindDef[] = [
     props: [
       { key: 'polen', label: 'Polen', type: 'select', options: POLEN, default: '2P' },
       { key: 'ampere', label: 'Stroomsterkte', type: 'select', options: AMPERE, default: '10A' },
-      { key: 'kabel', label: 'Kabel kring', type: 'text', default: '' },
-      { key: 'kringnr', label: 'Kringnummer', type: 'text', default: '', hint: 'Leeg = automatisch nummeren' },
+      cableProp('Kabel kring', ''),
+      kringnrProp(),
       labelProp(),
     ],
   },
@@ -192,7 +317,7 @@ export const CATALOG: KindDef[] = [
     props: [
       { key: 'polen', label: 'Polen', type: 'select', options: POLEN, default: '4P' },
       { key: 'ampere', label: 'Stroomsterkte', type: 'select', options: AMPERE, default: '63A' },
-      { key: 'kabel', label: 'Kabel', type: 'text', default: '' },
+      cableProp('Kabel', ''),
       labelProp('Bv. hoofdschakelaar'),
     ],
   },
@@ -295,7 +420,14 @@ export const CATALOG: KindDef[] = [
     childCategories: ['verbruiker'],
     props: [
       { key: 'type', label: 'Toestel', type: 'select', options: TOESTEL_TYPES, default: 'Wasmachine' },
-      { key: 'vermogen', label: 'Vermogen', type: 'text', default: '', hint: 'Bv. 2200 W (optioneel)' },
+      {
+        key: 'vermogen',
+        label: 'Vermogen',
+        type: 'text',
+        default: '',
+        hint: 'Bv. 2200 W (optioneel)',
+        suggestions: VERMOGEN_SUGGESTIONS,
+      },
       labelProp(),
     ],
   },
@@ -316,6 +448,21 @@ export const CATALOG: KindDef[] = [
     props: [labelProp()],
   },
 ];
+
+/**
+ * Categorieën in de volgorde waarin ze in het symbolenpalet (linkerpaneel)
+ * getoond worden, met een leesbare titel.
+ */
+export const CATEGORY_META: { id: Category; label: string }[] = [
+  { id: 'voeding', label: 'Voeding & meting' },
+  { id: 'bord', label: 'Verdeelbord' },
+  { id: 'beveiliging', label: 'Beveiliging & sturing' },
+  { id: 'verbruiker', label: 'Verbruikers' },
+];
+
+/** Alle componenttypes van een categorie (voor het symbolenpalet). */
+export const kindsByCategory = (category: Category): KindDef[] =>
+  CATALOG.filter((def) => def.category === category);
 
 const KIND_MAP = new Map(CATALOG.map((def) => [def.kind, def]));
 

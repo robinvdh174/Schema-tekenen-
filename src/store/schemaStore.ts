@@ -16,6 +16,39 @@ import { emptyPlan } from '@/edt/plan';
 const STORAGE_KEY = 'eendraadschema-project-v1';
 const MAX_HISTORY = 200;
 
+/**
+ * Bepaalt onder welke node een nieuw symbool uit het palet moet komen.
+ * Gedrag:
+ *  - is er een selectie, dan wordt vanaf die node naar boven gezocht naar de
+ *    dichtstbijzijnde node die dit type als kind aanvaardt (zo wordt bv. een
+ *    tweede stopcontact netjes doorgelust onder het geselecteerde stopcontact);
+ *  - lukt dat niet (of is er niets geselecteerd), dan valt het terug op de
+ *    laatste geschikte ouder in de boom, zodat plaatsen vrijwel altijd lukt.
+ * Geeft `null` als geen enkele node dit type kan bevatten.
+ */
+const resolveInsertionParent = (
+  tree: SchemaNode,
+  selectedId: string | null,
+  kind: string
+): SchemaNode | null => {
+  const accepts = (node: SchemaNode) =>
+    allowedChildKinds(node.kind).some((def) => def.kind === kind);
+
+  if (selectedId) {
+    let node: SchemaNode | null = findNode(tree, selectedId);
+    while (node) {
+      if (accepts(node)) return node;
+      node = findParent(tree, node.id);
+    }
+  }
+
+  let candidate: SchemaNode | null = null;
+  walk(tree, (node) => {
+    if (accepts(node)) candidate = node;
+  });
+  return candidate;
+};
+
 /** Realistisch startproject zodat je meteen ziet hoe het werkt. */
 export const buildDefaultTree = (): SchemaNode =>
   createNode('aansluiting', defaultProps('aansluiting'), [
@@ -127,6 +160,12 @@ interface SchemaState {
   setInstallateur: (value: string) => void;
 
   addChild: (parentId: string, kind: string) => void;
+  /**
+   * Plaatst een symbool uit het palet op de slimste plek (zie
+   * resolveInsertionParent). Geeft het id van de nieuwe node terug, of `null`
+   * wanneer het type hier niet geplaatst kan worden.
+   */
+  addComponent: (kind: string) => string | null;
   removeSelected: () => void;
   duplicateSelected: () => void;
   moveSelected: (direction: -1 | 1) => void;
@@ -210,6 +249,21 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
         }),
         { selectedId: child.id }
       );
+    },
+
+    addComponent: (kind) => {
+      const { doc, selectedId } = get();
+      const parent = resolveInsertionParent(doc.tree, selectedId, kind);
+      if (!parent) return null;
+      const child = createNode(kind, defaultProps(kind));
+      commit(
+        (d) => ({
+          ...d,
+          tree: mapNode(d.tree, parent.id, (n) => ({ ...n, children: [...n.children, child] })),
+        }),
+        { selectedId: child.id }
+      );
+      return child.id;
     },
 
     removeSelected: () => {

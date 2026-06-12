@@ -1,6 +1,8 @@
-import { ArrowDown, ArrowUp, Copy, PanelRightClose, Trash2 } from 'lucide-react';
+import { useId } from 'react';
+import { ArrowDown, ArrowUp, Copy, PanelRightClose, Trash2, Zap } from 'lucide-react';
 import { findNode, findParent } from '@/edt/model';
 import { kindDef, nodeTitle, type PropDef } from '@/edt/catalog';
+import { computeKringNumbers } from '@/edt/layout';
 import { useSchemaStore } from '@/store/schemaStore';
 
 const Field = ({
@@ -14,6 +16,8 @@ const Field = ({
 }) => {
   const inputClass =
     'w-full rounded-md border border-panel-border bg-panel-dark px-2.5 py-1.5 text-sm text-slate-100 focus:border-accent focus:outline-none';
+  const listId = useId();
+  const hasSuggestions = def.type === 'text' && def.suggestions && def.suggestions.length > 0;
 
   if (def.type === 'boolean') {
     return (
@@ -50,13 +54,25 @@ const Field = ({
           className={inputClass}
         />
       ) : (
-        <input
-          type="text"
-          value={String(value)}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
-          spellCheck={false}
-        />
+        <>
+          <input
+            type="text"
+            value={String(value)}
+            onChange={(e) => onChange(e.target.value)}
+            className={inputClass}
+            spellCheck={false}
+            list={hasSuggestions ? listId : undefined}
+            autoComplete="off"
+            placeholder={hasSuggestions ? 'Kies of typ…' : undefined}
+          />
+          {hasSuggestions ? (
+            <datalist id={listId}>
+              {def.suggestions!.map((opt) => (
+                <option key={opt} value={opt} />
+              ))}
+            </datalist>
+          ) : null}
+        </>
       )}
       {def.hint ? <p className="text-[11px] text-slate-500">{def.hint}</p> : null}
     </div>
@@ -94,8 +110,8 @@ const ProjectFields = () => {
         />
       </div>
       <p className="mt-4 text-xs leading-relaxed text-slate-500">
-        Selecteer een onderdeel in het schema of in de lijst links om de eigenschappen ervan aan te
-        passen.
+        Klik een onderdeel aan op het schema om de eigenschappen ervan aan te passen. Nieuwe
+        symbolen voeg je toe via het palet links.
       </p>
     </div>
   );
@@ -125,6 +141,11 @@ export const PropsPanel = () => {
   const parent = isRoot ? null : findParent(doc.tree, node.id);
   const siblingCount = parent?.children.length ?? 1;
 
+  // Voor een kring-startende beveiliging tonen we het huidige kringnummer
+  // prominent, zodat duidelijk is welke kring dit is en hoe je ze hernoemt.
+  const hasKringnr = def.props.some((p) => p.key === 'kringnr');
+  const effectiveKring = hasKringnr ? computeKringNumbers(doc.tree).get(node.id) ?? null : null;
+
   return (
     <aside className="panel flex w-72 shrink-0 flex-col border-l">
       <div className="panel-section flex shrink-0 items-start justify-between gap-2">
@@ -138,6 +159,19 @@ export const PropsPanel = () => {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        {effectiveKring ? (
+          <div className="mb-3 flex items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-2.5 py-2">
+            <span className="flex h-7 min-w-7 items-center justify-center rounded bg-accent px-1.5 text-sm font-bold text-white">
+              {effectiveKring}
+            </span>
+            <span className="text-[11px] leading-tight text-slate-300">
+              <Zap className="mr-1 inline h-3 w-3 text-accent" />
+              Kring <b className="text-slate-100">{effectiveKring}</b>. Pas het veld
+              “Kringnummer / -letter” aan om deze kring te hernoemen (bv. B → F) — het schema en de
+              nummering passen zich overal automatisch aan.
+            </span>
+          </div>
+        ) : null}
         {def.props.map((propDef) => (
           <Field
             key={propDef.key}

@@ -18,10 +18,10 @@ const HelpPopover = ({ onClose }: { onClose: () => void }) => (
   <div className="absolute right-2 top-14 z-50 w-80 rounded-lg border border-panel-border bg-panel p-4 text-sm text-slate-200 shadow-2xl">
     <p className="mb-2 font-semibold">Zo werkt het</p>
     <ol className="list-decimal space-y-1.5 pl-4 text-[13px] leading-relaxed text-slate-300">
-      <li>Selecteer links (of op het schema) een onderdeel, bv. het verdeelbord.</li>
-      <li>Voeg er via het paneel linksonder iets aan toe, bv. een automaat (= nieuwe kring).</li>
-      <li>Voeg onder de automaat de verbruikers toe: stopcontacten, schakelaars, lichtpunten, toestellen …</li>
-      <li>Pas rechts de eigenschappen aan (ampère, kabel, lokaal …).</li>
+      <li>Klik op het schema een onderdeel aan, bv. het verdeelbord.</li>
+      <li>Kies links in het symbolenpalet wat je eronder wil, bv. een automaat (= nieuwe kring).</li>
+      <li>Klik onder die automaat verbruikers bij: stopcontacten, schakelaars, lichtpunten, toestellen …</li>
+      <li>Pas rechts de eigenschappen aan (ampère, kabel, kring, lokaal …).</li>
     </ol>
     <p className="mt-2 text-[13px] leading-relaxed text-slate-400">
       Het schema tekent en nummert zichzelf. Je werk wordt automatisch in deze browser bewaard;

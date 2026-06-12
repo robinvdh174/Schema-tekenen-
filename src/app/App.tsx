@@ -5,7 +5,7 @@ import { SchemaCanvas } from '@/components/edt/SchemaCanvas';
 import { PropsPanel } from '@/components/edt/PropsPanel';
 import { StatusBar } from '@/components/edt/StatusBar';
 import { Toolbar } from '@/components/edt/Toolbar';
-import { TreePanel } from '@/components/edt/TreePanel';
+import { SymbolPanel } from '@/components/edt/SymbolPanel';
 import { useKeyboard } from '@/hooks/useKeyboard';
 import { useSchemaStore } from '@/store/schemaStore';
 
@@ -23,7 +23,7 @@ const CollapsedRail = ({
     <div className={`panel flex w-8 shrink-0 flex-col items-center ${border} py-2`}>
       <button
         onClick={onOpen}
-        title={side === 'left' ? 'Lijst tonen' : 'Eigenschappen tonen'}
+        title={side === 'left' ? 'Symbolen tonen' : 'Eigenschappen tonen'}
         className="btn-icon"
       >
         <Icon className="h-4 w-4" />
@@ -46,7 +46,7 @@ export const App = () => {
       <div className="flex min-h-0 flex-1">
         {leftOpen ? (
           view === 'schema' ? (
-            <TreePanel />
+            <SymbolPanel />
           ) : (
             <PlanPanel />
           )
