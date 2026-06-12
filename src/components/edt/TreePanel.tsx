@@ -1,17 +1,48 @@
-import { PanelLeftClose } from 'lucide-react';
+import type { ComponentType } from 'react';
+import {
+  Box,
+  CloudLightning,
+  Cpu,
+  Gauge,
+  GitBranch,
+  Lightbulb,
+  Plug,
+  Power,
+  Server,
+  ShieldAlert,
+  ShieldCheck,
+  PanelLeftClose,
+  ToggleLeft,
+  Zap,
+} from 'lucide-react';
 import type { SchemaNode } from '@/edt/model';
 import { findNode } from '@/edt/model';
 import { allowedChildKinds, nodeTitle } from '@/edt/catalog';
 import { useSchemaStore } from '@/store/schemaStore';
-import { TreeGlyph } from './TreeGlyph';
 
-const nodeType = (node: SchemaNode): string | undefined =>
-  typeof node.props.type === 'string' ? node.props.type : undefined;
+const ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  aansluiting: Zap,
+  teller: Gauge,
+  bord: Server,
+  automaat: ShieldCheck,
+  differentieel: ShieldAlert,
+  diffautomaat: ShieldAlert,
+  smeltzekering: ShieldCheck,
+  hoofdschakelaar: Power,
+  relais: Cpu,
+  overspanning: CloudLightning,
+  stopcontact: Plug,
+  lichtpunt: Lightbulb,
+  schakelaar: ToggleLeft,
+  toestel: Box,
+  aftakdoos: GitBranch,
+};
 
 const TreeRow = ({ node, depth }: { node: SchemaNode; depth: number }) => {
   const selectedId = useSchemaStore((s) => s.selectedId);
   const select = useSchemaStore((s) => s.select);
   const selected = node.id === selectedId;
+  const Icon = ICONS[node.kind] ?? Box;
   const sub = String(node.props.label ?? node.props.lokaal ?? '');
 
   return (
@@ -23,11 +54,7 @@ const TreeRow = ({ node, depth }: { node: SchemaNode; depth: number }) => {
         }`}
         style={{ paddingLeft: `${8 + depth * 14}px` }}
       >
-        <TreeGlyph
-          kind={node.kind}
-          type={nodeType(node)}
-          className={`h-6 w-6 shrink-0 ${selected ? 'text-white' : 'text-slate-300'}`}
-        />
+        <Icon className={`h-3.5 w-3.5 shrink-0 ${selected ? 'text-white' : 'text-slate-400'}`} />
         <span className="min-w-0 flex-1 truncate">
           {nodeTitle(node)}
           {sub ? (
@@ -63,17 +90,20 @@ const AddSection = () => {
         <p className="text-xs text-slate-500">Hieronder kan niets toegevoegd worden.</p>
       ) : (
         <div className="grid grid-cols-2 gap-1.5">
-          {options.map((def) => (
-            <button
-              key={def.kind}
-              onClick={() => addChild(selected.id, def.kind)}
-              title={def.description}
-              className="flex items-center gap-1.5 rounded-md border border-panel-border bg-panel-light px-2 py-1.5 text-left text-xs text-slate-200 transition-colors hover:border-accent hover:bg-panel-dark"
-            >
-              <TreeGlyph kind={def.kind} className="h-5 w-5 shrink-0 text-slate-300" />
-              <span className="truncate">{def.label}</span>
-            </button>
-          ))}
+          {options.map((def) => {
+            const Icon = ICONS[def.kind] ?? Box;
+            return (
+              <button
+                key={def.kind}
+                onClick={() => addChild(selected.id, def.kind)}
+                title={def.description}
+                className="flex items-center gap-1.5 rounded-md border border-panel-border bg-panel-light px-2 py-1.5 text-left text-xs text-slate-200 transition-colors hover:border-accent hover:bg-panel-dark"
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <span className="truncate">{def.label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
