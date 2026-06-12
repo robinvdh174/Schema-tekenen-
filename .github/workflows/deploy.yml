@@ -50,12 +50,13 @@ jobs:
         with:
           path: dist
 
+  # Geen `environment:`-declaratie: de branch-policy van de github-pages
+  # omgeving laat alleen de oorspronkelijke branch toe en zou deploys vanaf
+  # andere claude/**-branches blokkeren. De protection rules gelden enkel
+  # voor jobs die de omgeving expliciet declareren.
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
