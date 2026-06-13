@@ -19,7 +19,10 @@ export const StatusBar = () => {
   }, [tree]);
 
   return (
-    <footer className="flex h-7 shrink-0 items-center justify-between border-t border-panel-border bg-panel px-3 text-[11px] text-slate-400">
+    <footer
+      className="flex h-7 shrink-0 items-center justify-between border-t border-panel-border bg-panel px-3 text-[11px] text-slate-400"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <span>
         {stats.kringen} {stats.kringen === 1 ? 'kring' : 'kringen'} · {stats.componenten} componenten
       </span>

@@ -128,6 +128,47 @@ export const SchemaCanvas = () => {
     applyScale(stage.scaleX() * factor, pointer);
   };
 
+  // Knijpen met twee vingers om in/uit te zoomen (iPad/tablet).
+  const pinchRef = useRef<{ dist: number; center: { x: number; y: number } } | null>(null);
+
+  const handleTouchMove = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    const touches = e.evt.touches;
+    if (touches.length !== 2) return;
+    e.evt.preventDefault();
+    const stage = stageRef.current;
+    if (!stage) return;
+    // De ingebouwde één-vinger versleep-actie stoppen tijdens het knijpen.
+    if (stage.isDragging()) stage.stopDrag();
+
+    const [t1, t2] = [touches[0], touches[1]];
+    const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    const rect = stage.container().getBoundingClientRect();
+    const center = {
+      x: (t1.clientX + t2.clientX) / 2 - rect.left,
+      y: (t1.clientY + t2.clientY) / 2 - rect.top,
+    };
+
+    const prev = pinchRef.current;
+    if (!prev) {
+      pinchRef.current = { dist, center };
+      return;
+    }
+
+    applyScale(stage.scaleX() * (dist / prev.dist), center);
+    // Met de middens van de vingers meeschuiven, zodat je tegelijk kan pannen.
+    const dx = center.x - prev.center.x;
+    const dy = center.y - prev.center.y;
+    if (dx || dy) {
+      stage.position({ x: stage.x() + dx, y: stage.y() + dy });
+      stage.batchDraw();
+    }
+    pinchRef.current = { dist, center };
+  };
+
+  const handleTouchEnd = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    if (e.evt.touches.length < 2) pinchRef.current = null;
+  };
+
   const datum = new Date(doc.updatedAt).toLocaleDateString('nl-BE');
   const titleX = paper.x + paper.w - 16 - TITLE_W;
   const titleY = paper.y + paper.h - 16 - TITLE_H;
@@ -147,6 +188,8 @@ export const SchemaCanvas = () => {
           onTap={(e) => {
             if (e.target === e.target.getStage() || e.target.name() === 'paper') select(null);
           }}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onDragEnd={() => undefined}
         >
           <Layer>

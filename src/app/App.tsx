@@ -41,7 +41,7 @@ export const App = () => {
   useKeyboard();
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-panel-dark text-slate-100">
+    <div className="app-shell flex w-screen flex-col bg-panel-dark text-slate-100">
       <Toolbar />
       <div className="flex min-h-0 flex-1">
         {leftOpen ? (
