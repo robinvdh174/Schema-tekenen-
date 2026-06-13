@@ -219,6 +219,31 @@ const PompRender = ({ state, properties }: SymbolRenderProps) => {
   );
 };
 
+/* --- Vrij tekstvak (annotatie) ----------------------------------------- */
+const TEKST_GROOTTES = ['Klein', 'Normaal', 'Groot'];
+const TEKST_FONT_SIZE: Record<string, number> = { Klein: 10, Normaal: 13, Groot: 18 };
+
+const TekstRender = ({ state, properties }: SymbolRenderProps) => {
+  const s = strokeFor(state);
+  const tekst = String(properties.tekst?.value ?? '') || 'Tekst';
+  const grootte = String(properties.grootte?.value ?? 'Normaal');
+  const vet = Boolean(properties.vet?.value ?? false);
+  const fontSize = TEKST_FONT_SIZE[grootte] ?? 13;
+  return (
+    <Text
+      x={0}
+      y={0}
+      width={150}
+      text={tekst}
+      fontFamily={FONT_FAMILY}
+      fontSize={fontSize}
+      fontStyle={vet ? '700' : 'normal'}
+      lineHeight={1.2}
+      fill={s}
+    />
+  );
+};
+
 /* --- Trillingsdetector ------------------------------------------------- */
 const TrillingsdetectorRender = ({ state }: SymbolRenderProps) => {
   const s = strokeFor(state);
@@ -365,5 +390,20 @@ export const diversenSymbols: SymbolDefinition[] = [
       adres: { label: 'Adres', type: 'string', defaultValue: '' },
     },
     Render: TrillingsdetectorRender,
+  },
+  {
+    type: 'tekst',
+    category: 'diversen',
+    name: 'Tekstvak',
+    description: 'Vrije tekst / notitie',
+    width: 150,
+    height: 24,
+    connectionPoints: [],
+    properties: {
+      tekst: { label: 'Tekst', type: 'string', defaultValue: 'Tekst' },
+      grootte: { label: 'Grootte', type: 'select', defaultValue: 'Normaal', options: TEKST_GROOTTES },
+      vet: { label: 'Vetgedrukt', type: 'boolean', defaultValue: false },
+    },
+    Render: TekstRender,
   },
 ];

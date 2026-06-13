@@ -28,7 +28,10 @@ export const StatusBar = () => {
       : null;
 
   return (
-    <footer className="flex h-7 shrink-0 items-center justify-between border-t border-panel-border bg-panel px-3 text-[11px] text-slate-400">
+    <footer
+      className="flex h-7 shrink-0 items-center justify-between border-t border-panel-border bg-panel px-3 text-[11px] text-slate-400"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="flex items-center gap-4">
         <span>
           Modus: <span className="text-slate-200">{MODE_LABELS[mode]}</span>

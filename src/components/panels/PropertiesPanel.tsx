@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Cable, Info, MousePointerSquareDashed, RotateCw, Trash2, Zap } from 'lucide-react';
+import { Cable, Info, MousePointerSquareDashed, RotateCw, Trash2, X, Zap } from 'lucide-react';
 import { useEditorStore } from '@/store/editorStore';
 import { useProjectStore } from '@/store/projectStore';
 import { getSymbolDefinition } from '@/data/symbols';
@@ -10,7 +10,7 @@ import type { EditorMode } from '@/types/canvas';
 import type { Wire, WireCableType, WireCrossSection } from '@/types/wire';
 import { WIRE_CABLE_TYPES, WIRE_CROSS_SECTIONS } from '@/types/wire';
 
-export const PropertiesPanel = () => {
+export const PropertiesPanel = ({ onClose }: { onClose?: () => void }) => {
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const selectedWireIds = useEditorStore((s) => s.selectedWireIds);
   const mode = useEditorStore((s) => s.mode);
@@ -24,8 +24,17 @@ export const PropertiesPanel = () => {
 
   return (
     <aside className="panel flex h-full w-72 shrink-0 flex-col border-l">
-      <div className="panel-section">
+      <div className="panel-section flex items-center justify-between">
         <h2 className="panel-heading">Eigenschappen</h2>
+        {onClose ? (
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-slate-400 hover:bg-panel-light hover:text-slate-100"
+            title="Paneel sluiten"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
 
       {selectedSymbols.length === 0 && selectedWires.length === 0 ? (

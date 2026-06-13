@@ -16,9 +16,16 @@ interface UiState {
   setClipboard: (symbols: PlacedSymbol[]) => void;
 }
 
+/**
+ * Brede schermen (laptop / iPad landschap) tonen de panelen meteen naast het
+ * canvas. Smalle schermen (iPad portret / telefoon) starten met gesloten
+ * panelen zodat het volledige canvas zichtbaar is; ze openen dan als lade.
+ */
+const isWideScreen = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
+
 export const useUiStore = create<UiState>((set) => ({
-  leftPanelOpen: true,
-  rightPanelOpen: true,
+  leftPanelOpen: isWideScreen,
+  rightPanelOpen: isWideScreen,
   activeCategoryId: 'voeding',
   toastMessage: null,
   clipboard: [],

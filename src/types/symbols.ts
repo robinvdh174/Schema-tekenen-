@@ -67,6 +67,7 @@ export const AMPERAGE_SUGGESTIONS = ['10A', '16A', '20A', '25A', '32A', '40A', '
 export const TEXT_FIELD_SUGGESTIONS: Record<string, string[]> = {
   tekst: [...AMPERAGE_SUGGESTIONS, ...CABLE_TYPE_SUGGESTIONS],
   amperage: AMPERAGE_SUGGESTIONS,
+  kabel: CABLE_TYPE_SUGGESTIONS,
   adres: [],
   weerstand: ['< 30 Ω', '< 100 Ω'],
 };
