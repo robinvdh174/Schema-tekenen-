@@ -35,9 +35,9 @@ const POL_OPTIONS = ['—', '2P', '3P', '4P'];
 
 // Gedeelde geometrie binnen de 40×40 box.
 const CX = 20;
-const C = { x: 20, y: 27 }; // cirkelcentrum (bedieningspunt)
+const C = { x: 20, y: 26 }; // cirkelcentrum (bedieningspunt)
 const R = 5.5;
-const T = { x: 31, y: 13 }; // tip hefboom (vast contact, boven-rechts)
+const T = { x: 31, y: 12 }; // tip hefboom (vast contact, boven-rechts)
 
 /** Punt op de rand van de cirkel in de richting van een doelpunt. */
 const edgePoint = (target: { x: number; y: number }) => {
@@ -68,25 +68,22 @@ const SchakelaarRender = ({ state, properties }: SymbolRenderProps) => {
   const len = Math.hypot(dx, dy) || 1;
   const ux = dx / len;
   const uy = dy / len;
-  const px = -uy; // loodrecht
-  const py = ux;
 
-  // Korte dwarsstreepjes ("veren") = extra polen, vlak onder de tip.
+  // Korte streepjes ("veren") = extra polen, vlak onder de tip.
   const feathers = Array.from({ length: Math.max(0, poleCount - 1) }).map((_, i) => {
-    const d = 4 + i * 3.2; // afstand vanaf de tip terug langs de hefboom
+    const d = 4.5 + i * 3; // afstand vanaf de tip terug langs de hefboom
     const bx = T.x - ux * d;
     const by = T.y - uy * d;
-    const fl = 3.2;
-    return [bx - px * fl, by - py * fl, bx + px * fl, by + py * fl];
+    return [bx, by, bx + 4, by + 0.5];
   });
 
-  // Klein haakje aan de tip.
-  const hook = [T.x, T.y, T.x - 3.5, T.y - 1.5];
+  // Klein haakje aan de tip (vast contact).
+  const hook = [T.x, T.y, T.x + 3, T.y + 0.5];
 
   return (
     <Group>
-      {/* Inkomende geleider (haaks) naar de tip/vast contact */}
-      <Line points={[CX, 0, CX, T.y, T.x, T.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {/* Inkomende geleider van bovenaf naar het bedieningspunt (cirkel) */}
+      <Line points={[CX, 0, CX, C.y - R]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
 
       {/* Halfwaterdicht "h" links van de aansluitlijn */}
       {halfwaterdicht ? (
