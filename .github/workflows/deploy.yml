@@ -4,6 +4,10 @@ name: Deploy to GitHub Pages
 # (claude/symbol-corrections-review-rn81ep) gepubliceerd. Dit is de juiste
 # "foto-versie". De push-trigger is bewust beperkt tot enkel deze branch, zodat
 # geen enkele andere branch de live-site per ongeluk kan overschrijven.
+#
+# LET OP: GitHub Pages moet als bron "GitHub Actions" gebruiken (Settings ->
+# Pages -> Source = GitHub Actions). Staat die op "Deploy from a branch", dan
+# toont Pages de ruwe broncode i.p.v. de gebouwde app -> lege pagina.
 
 on:
   push:
