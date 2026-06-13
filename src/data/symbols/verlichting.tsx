@@ -71,9 +71,11 @@ const LichtpuntRender = ({ state, properties }: SymbolRenderProps) => {
       ) : null}
 
       {type === 'TL' ? (
+        // Fluorescentietoestel: horizontale lijn met dwarse eindstreepjes (Volta-document)
         <>
-          <Rect x={cx - 14} y={yCenter - 4} width={28} height={8} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-          <Line points={[cx - 14, yCenter, cx + 14, yCenter]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 14, yCenter, cx + 14, yCenter]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 14, yCenter - 5, cx - 14, yCenter + 5]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx + 14, yCenter - 5, cx + 14, yCenter + 5]} stroke={s} strokeWidth={STROKE_WIDTH} />
         </>
       ) : null}
 
