@@ -1,14 +1,22 @@
 import { Group, Line, Rect, Text } from 'react-konva';
 import type { SymbolDefinition, SymbolRenderProps } from '@/types/symbols';
-import { FILL_BG, FONT_FAMILY, STROKE_WIDTH, STROKE_WIDTH_MAIN, strokeFor } from './draw';
+import { FILL_BG, FONT_FAMILY, STROKE_WIDTH, STROKE_WIDTH_MAIN, STROKE_WIDTH_THIN, strokeFor } from './draw';
 
 /* =========================================================================
- * Beveiliging — Trikker conventies
+ * Beveiliging — AREI / Volta-conventies (Symbolen eendraadschema)
  *
- * Een automaat in eendraadschema = simpele schuine streep over een verticale
- * doorvoerlijn, met labels naast (bv. "2P - 16A C").
- * Differentieelschakelaar = idem met "Δ300mA 2P - 40A".
- * Differentieelautomaat = idem met "Δ300mA 2P - M40A".
+ * Volgens het officiële Volta-document worden automaat, differentieel-
+ * schakelaar en (kleine) vermogensschakelaar IDENTIEK getekend:
+ *   verticale doorvoerlijn → klein zwart vast contact → schuin open contact.
+ * Het enige verschil zit in het label naast het symbool:
+ *   - Automaat                 → "2P - C 20A"
+ *   - Differentieelschakelaar  → "Δ300mA 2P-40A / Type A"
+ *   - Differentieelautomaat    → "Δ300mA 2P-M40A / Type A"
+ * Een differentieel krijgt dus GEEN extra dwarsstreepje.
+ *
+ * Optioneel kan per beveiliging de uitgaande kabel (type + doorsnede)
+ * worden meegegeven; die wordt als label langs de uitgaande lijn getekend
+ * (zoals in Trikker), zodat de kabelkeuze niet vergeten wordt.
  * ========================================================================= */
 
 const POL_OPTIONS = ['1P', '1P+N', '2P', '3P', '3P+N', '4P'];
@@ -25,10 +33,14 @@ const TYPE_OPTIONS = [
   'Contact',
 ];
 
+/** Types die als beschermingsautomaat getekend worden (met zwart vast contact). */
+const BREAKER_TYPES = new Set(['Automaat', 'Differentieelschakelaar', 'Differentieelautomaat']);
+
 /**
- * Universeel "beveiligings-/contact"-symbool. Trikker tekent dit altijd als
- * een schakelcontact (schuine streep) op een verticale lijn met labels naast.
- * De `type` property bepaalt het extra teken bovenop de schuine streep.
+ * Universeel beveiligings-/contactsymbool volgens de Volta-conventie:
+ * een verticale doorvoerlijn met een schuin open contact. Beschermings-
+ * automaten (automaat/differentieel) krijgen daarbij een klein zwart vast
+ * contact. Het `type` bepaalt verder enkel het label, niet de vorm.
  */
 const AutomaatRender = ({ state, properties }: SymbolRenderProps) => {
   const s = strokeFor(state);
@@ -38,94 +50,74 @@ const AutomaatRender = ({ state, properties }: SymbolRenderProps) => {
   const curve = String(properties.curve?.value ?? 'C');
   const sensitivity = String(properties.gevoeligheid?.value ?? '300mA');
   const diffType = String(properties.diff_type?.value ?? 'A');
+  const kabel = String(properties.kabel?.value ?? '').trim();
 
-  // Verticale doorvoerlijn met breakpoint waar de schuine streep aanhaakt
+  // Geometrie van het contact (binnen de 40×50 box, geleider op x = cx).
   const cx = 20;
-  const yTop = 0;
-  const yMid = 22;
-  const yBot = 50;
+  const yContact = 15; // hoogte vast contact
+  const yPivot = 35; // draaipunt op de uitgaande geleider
+  const isBreaker = BREAKER_TYPES.has(type);
 
-  // Hoofdcontact = korte schuine streep van (cx, yMid) naar (cx+10, yMid-10)
-  const slashFrom = { x: cx, y: yMid };
-  const slashTo = { x: cx + 10, y: yMid - 10 };
-
-  // Compose the right-side text label
+  // Hoofdlabel rechts van het symbool.
   const label = (() => {
-    const polenStr = polen ? polen : '';
-    if (type === 'Differentieelschakelaar')
-      return `Δ${sensitivity} ${polenStr} - ${amp}\nType ${diffType}`;
-    if (type === 'Differentieelautomaat')
-      return `Δ${sensitivity} ${polenStr} - M${amp}\nType ${diffType}`;
+    const p = polen ? polen : '';
+    if (type === 'Differentieelschakelaar') return `Δ${sensitivity} ${p}-${amp}\nType ${diffType}`;
+    if (type === 'Differentieelautomaat') return `Δ${sensitivity} ${p}-M${amp}\nType ${diffType}`;
     if (type === 'Automaat')
-      return curve && curve !== '—' ? `${polenStr} - ${curve} ${amp}` : `${polenStr} - ${amp}`;
-    if (type === 'Zekeringscheider') return polenStr;
-    if (type === 'Draaischakelaar') return polenStr;
-    if (type === 'Schemerschakelaar') return polenStr;
-    if (type === 'Contact') return polenStr;
-    return polenStr;
+      return curve && curve !== '—' ? `${p} - ${curve} ${amp}` : `${p} - ${amp}`;
+    return p;
   })();
 
   return (
     <Group>
-      {/* Hoofdlijn boven */}
-      <Line points={[cx, yTop, cx, yMid]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-      {/* Schuine streep (basiscontact) */}
-      <Line
-        points={[slashFrom.x, slashFrom.y, slashTo.x, slashTo.y]}
-        stroke={s}
-        strokeWidth={STROKE_WIDTH_MAIN}
-      />
+      {/* Inkomende geleider boven */}
+      <Line points={[cx, 0, cx, yContact]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
 
-      {/* Type-specifieke extra's bovenop de schuine streep */}
-      {type === 'Zekeringscheider' ? (
-        <>
-          <Line points={[slashFrom.x - 2, slashFrom.y - 4, slashTo.x - 2, slashTo.y - 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
-          <Line points={[slashFrom.x + 2, slashFrom.y + 4, slashTo.x + 2, slashTo.y + 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
-        </>
-      ) : null}
-
-      {type === 'Draaischakelaar' ? (
-        // klein cirkeltje aan het uiteinde
-        <Line points={[slashTo.x, slashTo.y, slashTo.x + 2, slashTo.y - 2]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      ) : null}
-
-      {type === 'Schemerschakelaar' ? (
-        <>
-          <Line points={[slashFrom.x - 6, slashFrom.y - 8, slashFrom.x - 2, slashFrom.y - 12]} stroke={s} strokeWidth={STROKE_WIDTH} />
-          <Line points={[slashFrom.x - 4, slashFrom.y - 6, slashFrom.x, slashFrom.y - 10]} stroke={s} strokeWidth={STROKE_WIDTH} />
-        </>
-      ) : null}
-
-      {(type === 'Differentieelschakelaar' || type === 'Differentieelautomaat') ? (
-        // Streep dwars op de schakelaar = differentieel-symbool
-        <Line points={[slashFrom.x + 1, slashFrom.y - 4, slashTo.x - 4, slashTo.y + 1]} stroke={s} strokeWidth={STROKE_WIDTH} />
-      ) : null}
-
-      {/* Hoofdlijn beneden */}
-      <Line points={[cx, yMid, cx, yBot]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-
-      {/* Polen-label onder de schuine streep */}
-      {polen ? (
-        <Text
-          x={2}
-          y={yMid + 14}
-          text={polen}
-          fontFamily={FONT_FAMILY}
-          fontSize={9}
+      {/* Vast contact: klein zwart blokje (enkel bij beschermingsautomaten) */}
+      {isBreaker ? (
+        <Line
+          points={[cx, yContact - 3.5, cx + 3.5, yContact, cx, yContact + 3.5, cx - 3.5, yContact]}
+          stroke={s}
+          strokeWidth={STROKE_WIDTH_THIN}
+          closed
           fill={s}
         />
       ) : null}
 
+      {/* Schuin (open) beweegbaar contact */}
+      <Line points={[cx, yPivot, cx + 9, yContact + 3]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+
+      {/* Zekeringscheider: smeltzekering (rechthoekje) op de uitgaande lijn */}
+      {type === 'Zekeringscheider' ? (
+        <Rect x={cx - 4} y={38} width={8} height={9} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      ) : null}
+
+      {/* Uitgaande geleider beneden */}
+      <Line points={[cx, yPivot, cx, 50]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+
       {/* Hoofdlabel rechts van het symbool */}
       {label ? (
         <Text
-          x={36}
-          y={yMid - 8}
+          x={32}
+          y={9}
           text={label}
           fontFamily={FONT_FAMILY}
           fontSize={10}
           fontStyle="600"
           lineHeight={1.2}
+          fill={s}
+        />
+      ) : null}
+
+      {/* Kabel langs de uitgaande lijn (zoals Trikker), bv. "XVB 3G2.5" */}
+      {kabel ? (
+        <Text
+          x={cx + 5}
+          y={39}
+          text={kabel}
+          fontFamily={FONT_FAMILY}
+          fontSize={8.5}
+          fontStyle="italic"
           fill={s}
         />
       ) : null}
@@ -185,6 +177,7 @@ const automaatProperties = (defaultType: string) => ({
   curve: { label: 'Curve', type: 'select' as const, defaultValue: 'C', options: CURVE_OPTIONS },
   gevoeligheid: { label: 'Gevoeligheid (Δ)', type: 'select' as const, defaultValue: '300mA', options: DIFF_GEVOELIGHEID },
   diff_type: { label: 'Diff. type', type: 'select' as const, defaultValue: 'A', options: DIFF_TYPES },
+  kabel: { label: 'Kabel (type + doorsnede)', type: 'string' as const, defaultValue: '' },
   kring: { label: 'Kring', type: 'string' as const, defaultValue: '' },
 });
 

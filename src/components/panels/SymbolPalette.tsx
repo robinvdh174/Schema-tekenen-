@@ -26,7 +26,7 @@ const CATEGORY_ICONS: Record<SymbolCategory, LucideIcon> = {
   diversen: Shapes,
 };
 
-export const SymbolPalette = () => {
+export const SymbolPalette = ({ onClose }: { onClose?: () => void }) => {
   const activeCategoryId = useUiStore((s) => s.activeCategoryId);
   const setActiveCategory = useUiStore((s) => s.setActiveCategory);
   const [query, setQuery] = useState('');
@@ -79,6 +79,18 @@ export const SymbolPalette = () => {
       {/* Symbolen-inhoud */}
       <div className="flex w-60 flex-col">
         <div className="panel-section space-y-2">
+          {onClose ? (
+            <div className="flex items-center justify-between">
+              <span className="panel-heading">Symbolen</span>
+              <button
+                onClick={onClose}
+                className="rounded p-1 text-slate-400 hover:bg-panel-light hover:text-slate-100"
+                title="Paneel sluiten"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : null}
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
             <input
