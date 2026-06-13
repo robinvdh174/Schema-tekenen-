@@ -1,10 +1,14 @@
 name: Deploy to GitHub Pages
 
+# De live-site (robinvdh174.github.io) wordt UITSLUITEND vanaf deze branch
+# (claude/symbol-corrections-review-rn81ep) gepubliceerd. Dit is de juiste
+# "foto-versie". De push-trigger is bewust beperkt tot enkel deze branch, zodat
+# geen enkele andere branch de live-site per ongeluk kan overschrijven.
+
 on:
   push:
     branches:
-      - main
-      - 'claude/**'
+      - claude/symbol-corrections-review-rn81ep
   workflow_dispatch:
 
 # Grant the workflow write access to Pages deployments and an OIDC token so the
