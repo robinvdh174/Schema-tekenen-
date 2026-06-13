@@ -23,6 +23,17 @@ body,
   touch-action: none;
 }
 
+/*
+ * App shell height. On iPad Safari `100vh`/`100dvh` can be taller than the
+ * visible area, pushing the status bar and floating canvas controls off the
+ * bottom of the screen. `100svh` (the smallest viewport) guarantees the whole
+ * UI stays within view. The `100vh` line is a fallback for older browsers.
+ */
+.app-shell {
+  height: 100vh;
+  height: 100svh;
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors;

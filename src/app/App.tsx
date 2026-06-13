@@ -20,7 +20,7 @@ export const App = () => {
   useKeyboard();
 
   return (
-    <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-panel-dark text-slate-100">
+    <div className="app-shell flex w-screen flex-col overflow-hidden bg-panel-dark text-slate-100">
       <MainToolbar />
       <div className="relative flex min-h-0 flex-1">
         {/* Linker symbolenpaneel — vast op brede schermen */}
