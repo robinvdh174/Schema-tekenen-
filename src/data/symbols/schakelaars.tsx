@@ -1,21 +1,13 @@
 import { Circle, Group, Line, Text } from 'react-konva';
 import type { SymbolDefinition, SymbolRenderProps } from '@/types/symbols';
-import { FILL_BG, FILL_BLACK, FONT_FAMILY, STROKE_WIDTH, STROKE_WIDTH_MAIN, strokeFor } from './draw';
+import { FILL_BG, FONT_FAMILY, STROKE_WIDTH, STROKE_WIDTH_MAIN, strokeFor } from './draw';
 
 /* =========================================================================
- * Schakelaars — volgens het Volta-document "Symbolen eendraadschema".
+ * Schakelaars — Trikker conventies
  *
- * Basisvorm = een CIRKEL (bedieningspunt) met een schuine HEFBOOM naar
- * boven-rechts die eindigt in een klein haakje (vast contact). Het aantal
- * polen wordt aangeduid met korte dwarsstreepjes ("veren") op de hefboom.
- * Varianten:
- *   - Wisselschakelaar: extra stub naar onder-links (tweede stand)
- *   - Kruisschakelaar: X-vorm (vier armen)
- *   - Dubbele aansteking: twee hefbomen in V-vorm
- *   - Dimmer: driehoekje aan de hefboom
- *   - Trekschakelaar: pijl naar beneden over de hefboom
- *   - Drukknop: dubbele cirkel
- *   - Verklikkerlamp: kruis (⊗) in de cirkel
+ * Basis: korte verticale aansluitlijn met een schuine streep aan het einde
+ * (lijkt op een hand-schakelaar). Varianten verschillen door extra symbool
+ * boven of naast de schuine streep.
  * ========================================================================= */
 
 const TYPE_OPTIONS = [
@@ -33,20 +25,6 @@ const TYPE_OPTIONS = [
 
 const POL_OPTIONS = ['—', '2P', '3P', '4P'];
 
-// Gedeelde geometrie binnen de 40×40 box.
-const CX = 20;
-const C = { x: 20, y: 26 }; // cirkelcentrum (bedieningspunt)
-const R = 5.5;
-const T = { x: 31, y: 12 }; // tip hefboom (vast contact, boven-rechts)
-
-/** Punt op de rand van de cirkel in de richting van een doelpunt. */
-const edgePoint = (target: { x: number; y: number }) => {
-  const dx = target.x - C.x;
-  const dy = target.y - C.y;
-  const len = Math.hypot(dx, dy) || 1;
-  return { x: C.x + (dx / len) * R, y: C.y + (dy / len) * R };
-};
-
 const SchakelaarRender = ({ state, properties }: SymbolRenderProps) => {
   const s = strokeFor(state);
   const type = String(properties.type?.value ?? 'Enkelpolig');
@@ -57,149 +35,135 @@ const SchakelaarRender = ({ state, properties }: SymbolRenderProps) => {
   const adres = String(properties.adres?.value ?? '');
   const aantalKnoppen = Number(properties.aantal_knoppen?.value ?? 0);
 
-  const poleCount =
-    polen === '2P' ? 2 : polen === '3P' ? 3 : polen === '4P' ? 4 : type === 'Dubbelpolig' ? 2 : 1;
-  const isDrukknop = type === 'Drukknop';
+  const cx = 20;
+  const yTop = 0;
+  const yPivot = 26;
 
-  // Hefboom-richting (cirkelrand → tip) en loodrechte richting voor de veren.
-  const start = edgePoint(T);
-  const dx = T.x - start.x;
-  const dy = T.y - start.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const ux = dx / len;
-  const uy = dy / len;
-
-  // Korte streepjes ("veren") = extra polen, vlak onder de tip.
-  const feathers = Array.from({ length: Math.max(0, poleCount - 1) }).map((_, i) => {
-    const d = 4.5 + i * 3; // afstand vanaf de tip terug langs de hefboom
-    const bx = T.x - ux * d;
-    const by = T.y - uy * d;
-    return [bx, by, bx + 4, by + 0.5];
-  });
-
-  // Klein haakje aan de tip (vast contact).
-  const hook = [T.x, T.y, T.x + 3, T.y + 0.5];
+  // Default = enkelpolig (één schuine streep) van pivot omhoog naar rechts
+  const slashEnd = { x: cx + 10, y: yPivot - 12 };
 
   return (
     <Group>
-      {/* Inkomende geleider van bovenaf naar het bedieningspunt (cirkel) */}
-      <Line points={[CX, 0, CX, C.y - R]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {/* Aansluitlijn van bovenaf */}
+      <Line points={[cx, yTop, cx, yPivot]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
 
-      {/* Halfwaterdicht "h" links van de aansluitlijn */}
+      {/* Halfwaterdicht "h" links van aansluitlijn */}
       {halfwaterdicht ? (
-        <Text x={CX - 13} y={1} text="h" fontFamily={FONT_FAMILY} fontStyle="600" fontSize={10} fill={s} />
+        <Text x={cx - 12} y={2} text="h" fontFamily={FONT_FAMILY} fontStyle="600" fontSize={10} fill={s} />
       ) : null}
 
-      {/* Bedieningspunt (cirkel) — drukknop = dubbele cirkel, anders gewone cirkel */}
-      {isDrukknop ? (
+      {/* Pivot-puntje */}
+      <Circle x={cx} y={yPivot} radius={1.6} fill={s} />
+
+      {/* Type-specifieke contact-renderingen */}
+      {type === 'Enkelpolig' ? (
+        <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      ) : null}
+
+      {type === 'Dubbelpolig' ? (
         <>
-          <Circle x={C.x} y={C.y} radius={R + 2.5} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-          {verklikker ? (
-            <>
-              <Circle x={C.x} y={C.y} radius={R - 1.5} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-              <Line points={[C.x - 3, C.y - 3, C.x + 3, C.y + 3]} stroke={s} strokeWidth={STROKE_WIDTH} />
-              <Line points={[C.x - 3, C.y + 3, C.x + 3, C.y - 3]} stroke={s} strokeWidth={STROKE_WIDTH} />
-            </>
-          ) : (
-            <Circle x={C.x} y={C.y} radius={2.2} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-          )}
-        </>
-      ) : (
-        <>
-          <Circle x={C.x} y={C.y} radius={R} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-          {/* Verklikkerlamp = kruis in de cirkel (⊗) */}
-          {verklikker ? (
-            <>
-              <Line points={[C.x - 3.8, C.y - 3.8, C.x + 3.8, C.y + 3.8]} stroke={s} strokeWidth={STROKE_WIDTH} />
-              <Line points={[C.x - 3.8, C.y + 3.8, C.x + 3.8, C.y - 3.8]} stroke={s} strokeWidth={STROKE_WIDTH} />
-            </>
-          ) : null}
-        </>
-      )}
-
-      {/* Hefboom + varianten (niet bij drukknop) */}
-      {!isDrukknop ? (
-        <>
-          {/* Hoofdhefboom naar boven-rechts met haakje */}
-          {type !== 'Kruis' ? (
-            <>
-              <Line points={[start.x, start.y, T.x, T.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-              <Line points={hook} stroke={s} strokeWidth={STROKE_WIDTH} />
-              {feathers.map((pts, i) => (
-                <Line key={`f-${i}`} points={pts} stroke={s} strokeWidth={STROKE_WIDTH} />
-              ))}
-            </>
-          ) : null}
-
-          {/* Tweede hefboom naar boven-links (V) = dubbele aansteking */}
-          {type === 'Dubbele aansteking' ? (
-            <>
-              <Line points={[edgePoint({ x: 9, y: 13 }).x, edgePoint({ x: 9, y: 13 }).y, 9, 13]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-              <Line points={[9, 13, 12, 14.5]} stroke={s} strokeWidth={STROKE_WIDTH} />
-            </>
-          ) : null}
-
-          {/* Stub naar onder-links = wisselstand */}
-          {type === 'Wissel' || type === 'Dubbele wissel' ? (
-            <>
-              <Line points={[edgePoint({ x: 9, y: 38 }).x, edgePoint({ x: 9, y: 38 }).y, 10, 37]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
-              <Line points={[10, 37, 13, 35.5]} stroke={s} strokeWidth={STROKE_WIDTH} />
-            </>
-          ) : null}
-
-          {/* Kruisschakelaar = X met vier armen + haakjes */}
-          {type === 'Kruis' ? (
-            <>
-              {[
-                { x: 31, y: 13 },
-                { x: 9, y: 13 },
-                { x: 31, y: 41 },
-                { x: 9, y: 41 },
-              ].map((arm, i) => {
-                const e = edgePoint(arm);
-                return <Line key={`arm-${i}`} points={[e.x, e.y, arm.x, arm.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />;
-              })}
-            </>
-          ) : null}
-
-          {/* Dimmer = driehoekje aan de hefboom */}
-          {type === 'Dimmer' || (dimmer && type !== 'Dimmer') ? (
-            <Line points={[24, 18, 31, 15, 27, 21]} closed stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BLACK} />
-          ) : null}
-
-          {/* Trekschakelaar = pijl naar beneden over de hefboom */}
-          {type === 'Trekschakelaar' ? (
-            <>
-              <Line points={[27, 13, 27, 23]} stroke={s} strokeWidth={STROKE_WIDTH} />
-              <Line points={[24.5, 20, 27, 23, 29.5, 20]} stroke={s} strokeWidth={STROKE_WIDTH} />
-            </>
-          ) : null}
-
-          {/* Rolluikschakelaar = op/neer-pijltjes links */}
-          {type === 'Rolluikschakelaar' ? (
-            <>
-              <Line points={[10, 4, 10, 16]} stroke={s} strokeWidth={STROKE_WIDTH} />
-              <Line points={[7, 7, 10, 4, 13, 7]} stroke={s} strokeWidth={STROKE_WIDTH} />
-              <Line points={[7, 13, 10, 16, 13, 13]} stroke={s} strokeWidth={STROKE_WIDTH} />
-            </>
-          ) : null}
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx + 3, yPivot - 1, slashEnd.x + 3, slashEnd.y - 1]} stroke={s} strokeWidth={STROKE_WIDTH} />
         </>
       ) : null}
 
-      {/* Uitgaande geleider onderaan */}
-      <Line points={[CX, C.y + R, CX, 40]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {type === 'Wissel' ? (
+        // Schuine streep + dwars-streepje aan het uiteinde (driepoot)
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[slashEnd.x - 2, slashEnd.y - 4, slashEnd.x + 4, slashEnd.y + 2]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Dubbele wissel' ? (
+        <>
+          <Line points={[cx, yPivot, cx + 8, yPivot - 8]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx, yPivot, cx - 8, yPivot - 8]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 6, yPivot - 4, cx + 6, yPivot - 12]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Kruis' ? (
+        // Twee gekruiste schuine strepen (X)
+        <>
+          <Line points={[cx - 8, yPivot - 8, cx + 8, yPivot - 8 + 0]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 8, yPivot - 4, cx + 8, yPivot - 12]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 8, yPivot - 12, cx + 8, yPivot - 4]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+        </>
+      ) : null}
+
+      {type === 'Dubbele aansteking' ? (
+        // Twee schuine strepen die uiteenwaaieren vanuit pivot
+        <>
+          <Line points={[cx, yPivot, cx + 10, yPivot - 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx, yPivot, cx - 10, yPivot - 10]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+        </>
+      ) : null}
+
+      {type === 'Dimmer' ? (
+        // Schuine streep + driehoek-pijl bij pivot
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 8, yPivot - 4, cx, yPivot - 12]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, yPivot - 4, cx - 5, yPivot - 8]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, yPivot - 4, cx - 8, yPivot - 8]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Drukknop' ? (
+        // Open cirkeltje boven de aansluitlijn
+        <Circle x={cx} y={yPivot - 6} radius={5} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+      ) : null}
+
+      {type === 'Rolluikschakelaar' ? (
+        // Schuine streep met dubbele pijl boven (op/neer)
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[cx - 8, 4, cx - 8, 16]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, 4, cx - 11, 7]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, 4, cx - 5, 7]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, 16, cx - 11, 13]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 8, 16, cx - 5, 13]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {type === 'Trekschakelaar' ? (
+        // Schuine streep met pijl-omhoog en dwarssteek
+        <>
+          <Line points={[cx, yPivot, slashEnd.x, slashEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+          <Line points={[slashEnd.x, slashEnd.y, slashEnd.x + 4, slashEnd.y - 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[slashEnd.x + 4, slashEnd.y - 4, slashEnd.x + 1, slashEnd.y - 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[slashEnd.x + 4, slashEnd.y - 4, slashEnd.x + 4, slashEnd.y - 1]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {/* Aanvullende dimmer-pijl (parameter, naast type=Dimmer) */}
+      {dimmer && type !== 'Dimmer' ? (
+        <>
+          <Line points={[cx - 8, yPivot - 4, cx, yPivot - 12]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
+
+      {/* Verklikkerlamp = klein cirkeltje met X erin links */}
+      {verklikker ? (
+        <>
+          <Circle x={cx - 12} y={yPivot - 8} radius={3} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
+          <Line points={[cx - 14, yPivot - 10, cx - 10, yPivot - 6]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 14, yPivot - 6, cx - 10, yPivot - 10]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
 
       {/* Adres-label */}
       {adres ? (
-        <Text x={CX + 14} y={2} text={adres} fontFamily={FONT_FAMILY} fontSize={9} fontStyle="italic" fill={s} />
+        <Text x={cx + 12} y={yPivot - 16} text={adres} fontFamily={FONT_FAMILY} fontSize={9} fontStyle="italic" fill={s} />
       ) : null}
       {/* Aantal knoppen */}
       {aantalKnoppen > 1 ? (
-        <Text x={CX + 14} y={20} text={`×${aantalKnoppen}`} fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
+        <Text x={cx - 6} y={yPivot - 24} text={`x${aantalKnoppen}`} fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
       ) : null}
       {/* Polen-label */}
       {polen && polen !== '—' ? (
-        <Text x={2} y={30} text={polen} fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
+        <Text x={cx + 12} y={yPivot - 4} text={polen} fontFamily={FONT_FAMILY} fontSize={9} fill={s} />
       ) : null}
     </Group>
   );
