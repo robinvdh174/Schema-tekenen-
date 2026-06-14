@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { ArrowDown, ArrowUp, Copy, PanelRightClose, Trash2, Zap } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, PanelRightClose, Trash2, Zap } from 'lucide-react';
 import { findNode, findParent } from '@/edt/model';
 import { kindDef, nodeTitle, type PropDef } from '@/edt/catalog';
 import { computeKringNumbers } from '@/edt/layout';
@@ -140,6 +140,14 @@ export const PropsPanel = () => {
   const isRoot = node.id === doc.tree.id;
   const parent = isRoot ? null : findParent(doc.tree, node.id);
   const siblingCount = parent?.children.length ?? 1;
+  // Kringen hangen horizontaal naast elkaar aan het bord, dus verplaatsen is
+  // hier links/rechts; voor in serie gestapelde of doorgeluste onderdelen is
+  // het eerder/later in de rij (omhoog/omlaag).
+  const onBord = parent?.kind === 'bord';
+  const MovePrevIcon = onBord ? ArrowLeft : ArrowUp;
+  const MoveNextIcon = onBord ? ArrowRight : ArrowDown;
+  const movePrevTitle = onBord ? 'Kring naar links' : 'Eerder in de rij (omhoog)';
+  const moveNextTitle = onBord ? 'Kring naar rechts' : 'Later in de rij (omlaag)';
 
   // Voor een kring-startende beveiliging tonen we het huidige kringnummer
   // prominent, zodat duidelijk is welke kring dit is en hoe je ze hernoemt.
@@ -166,9 +174,9 @@ export const PropsPanel = () => {
             </span>
             <span className="text-[11px] leading-tight text-slate-300">
               <Zap className="mr-1 inline h-3 w-3 text-accent" />
-              Kring <b className="text-slate-100">{effectiveKring}</b>. Pas het veld
-              “Kringnummer / -letter” aan om deze kring te hernoemen (bv. B → F) — het schema en de
-              nummering passen zich overal automatisch aan.
+              Kring <b className="text-slate-100">{effectiveKring}</b>. Verplaats de kring met de
+              pijlen ◀ ▶ onderaan — de letters herschikken zich dan automatisch in alfabetische
+              volgorde. Of typ een eigen letter/nummer in het veld hieronder.
             </span>
           </div>
         ) : null}
@@ -187,19 +195,19 @@ export const PropsPanel = () => {
           <div className="grid grid-cols-4 gap-1.5">
             <button
               className="btn-icon bg-panel-light"
-              title="Eerder in de rij (omhoog)"
+              title={movePrevTitle}
               onClick={() => moveSelected(-1)}
               disabled={siblingCount < 2}
             >
-              <ArrowUp className="h-4 w-4" />
+              <MovePrevIcon className="h-4 w-4" />
             </button>
             <button
               className="btn-icon bg-panel-light"
-              title="Later in de rij (omlaag)"
+              title={moveNextTitle}
               onClick={() => moveSelected(1)}
               disabled={siblingCount < 2}
             >
-              <ArrowDown className="h-4 w-4" />
+              <MoveNextIcon className="h-4 w-4" />
             </button>
             <button className="btn-icon bg-panel-light" title="Dupliceren (Ctrl+D)" onClick={duplicateSelected}>
               <Copy className="h-4 w-4" />

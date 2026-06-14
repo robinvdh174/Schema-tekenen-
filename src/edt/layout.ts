@@ -39,23 +39,38 @@ const KRING_KINDS = new Set([
 ]);
 
 /**
- * Kringnummers per verdeelbord: kinderen van een bord die een kring starten
- * krijgen 1, 2, 3, … tenzij de 'kringnr' property een eigen waarde (bv. "A")
- * bevat. Wordt ook gebruikt voor de componentnummering op het foto-plan.
+ * Kringletters per verdeelbord: kinderen van een bord die een kring starten
+ * krijgen automatisch A, B, C, … (in alfabetische volgorde, links → rechts)
+ * tenzij de 'kringnr' property een eigen waarde (bv. "3" of "K") bevat.
+ * Wordt ook gebruikt voor de componentnummering op het foto-plan.
+ *
+ * Door een kring met de pijlen ◀ ▶ te verplaatsen verandert de volgorde van
+ * de bord-kinderen en herschikken de letters zich dus automatisch.
  */
 export const computeKringNumbers = (root: SchemaNode): Map<string, string> => {
   const kringNumbers = new Map<string, string>();
   walk(root, (node) => {
     if (node.kind !== 'bord') return;
-    let counter = 1;
+    let index = 0;
     for (const child of node.children) {
       if (!KRING_KINDS.has(child.kind)) continue;
       const override = String(child.props.kringnr ?? '').trim();
-      kringNumbers.set(child.id, override || String(counter));
-      counter += 1;
+      kringNumbers.set(child.id, override || kringIndexToLetter(index));
+      index += 1;
     }
   });
   return kringNumbers;
+};
+
+/** 0 → "A", 25 → "Z", 26 → "AA", 27 → "AB", … */
+export const kringIndexToLetter = (index: number): string => {
+  let n = index;
+  let letter = '';
+  do {
+    letter = String.fromCharCode(65 + (n % 26)) + letter;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letter;
 };
 
 /* ------------------------------------------------------- geometrie-helpers */

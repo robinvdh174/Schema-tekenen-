@@ -49,10 +49,10 @@ export const CABLE_SUGGESTIONS = [
   'UTP Cat6',
 ];
 
-/** Voorgestelde kringnummers/-letters. */
+/** Voorgestelde kringletters/-nummers (letters worden automatisch toegekend). */
 export const KRINGNR_SUGGESTIONS = [
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
   '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
-  'A', 'B', 'C', 'D', 'E', 'F',
 ];
 
 /** Veelvoorkomende lokalen/ruimtes voor het omschrijvingsveld. */
@@ -198,10 +198,10 @@ const cableProp = (label = 'Kabel kring', def = ''): PropDef => ({
 /** Kringnummerveld met voorgestelde nummers/letters (bv. B → F). */
 const kringnrProp = (): PropDef => ({
   key: 'kringnr',
-  label: 'Kringnummer / -letter',
+  label: 'Kringletter / -nummer',
   type: 'text',
   default: '',
-  hint: 'Leeg = automatisch. Kies bv. B of F om de kring te (her)benoemen.',
+  hint: 'Leeg = automatisch (A, B, C …). Of typ zelf bv. 3 of K om de kring te hernoemen. Verplaatsen doe je met de pijlen ◀ ▶.',
   suggestions: KRINGNR_SUGGESTIONS,
 });
 
