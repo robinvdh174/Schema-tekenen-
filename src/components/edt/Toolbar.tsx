@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useSchemaStore } from '@/store/schemaStore';
 import { downloadPdf, downloadPng, downloadProjectJson, readProjectFile } from '@/edt/io';
+import { APP_VERSION } from '@/version';
 
 const HelpPopover = ({ onClose }: { onClose: () => void }) => (
   <div className="absolute right-2 top-14 z-50 w-80 rounded-lg border border-panel-border bg-panel p-4 text-sm text-slate-200 shadow-2xl">
@@ -111,6 +112,12 @@ export const Toolbar = () => {
       <div className="flex items-center gap-1">
         <span className="px-2 text-sm font-bold tracking-tight text-slate-100">
           Eendraad<span className="text-accent">schema</span>
+        </span>
+        <span
+          className="rounded bg-panel-light px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-300"
+          title="Versie die nu online staat"
+        >
+          {APP_VERSION}
         </span>
         <div className="toolbar-separator" />
         <button className="btn-ghost" title="Nieuw schema" onClick={handleNew}>
