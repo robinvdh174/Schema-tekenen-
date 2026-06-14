@@ -58,7 +58,8 @@ const LichtpuntRender = ({ state, properties }: SymbolRenderProps) => {
         <>
           {drawX(s)}
           {(wandverlichting || type === 'Wandverlichting') ? (
-            <Line points={[cx - armLen - 2, yCenter + armLen + 2, cx + armLen + 2, yCenter + armLen + 2]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+            // Wand = verticale streep naast het kruis (AREI: wandverlichtingstoestel)
+            <Line points={[cx + armLen + 3, yCenter - armLen, cx + armLen + 3, yCenter + armLen]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
           ) : null}
         </>
       ) : null}
@@ -71,9 +72,11 @@ const LichtpuntRender = ({ state, properties }: SymbolRenderProps) => {
       ) : null}
 
       {type === 'TL' ? (
+        // Fluorescentietoestel: horizontale lijn met verticale eindkapjes (├──┤)
         <>
-          <Rect x={cx - 14} y={yCenter - 4} width={28} height={8} stroke={s} strokeWidth={STROKE_WIDTH} fill={FILL_BG} />
-          <Line points={[cx - 14, yCenter, cx + 14, yCenter]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 15, yCenter, cx + 15, yCenter]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx - 15, yCenter - 5, cx - 15, yCenter + 5]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx + 15, yCenter - 5, cx + 15, yCenter + 5]} stroke={s} strokeWidth={STROKE_WIDTH} />
         </>
       ) : null}
 

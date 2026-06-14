@@ -53,9 +53,18 @@ const AutomaatRender = ({ state, properties }: SymbolRenderProps) => {
   const kabel = String(properties.kabel?.value ?? '').trim();
 
   // Geometrie van het contact (binnen de 40×50 box, geleider op x = cx).
+  //
+  // AREI/Volta-conventie (zie officieel document, sectie D):
+  //   - Inkomende geleider komt verticaal van boven en stopt met een kleine
+  //     onderbreking (= het open contact).
+  //   - Het beweegbare contact is een schuine arm die DRAAIT op de uitgaande
+  //     geleider (draaipunt onderaan) en SCHUIN OMHOOG NAAR LINKS wijst.
+  //   - Beschermingsautomaten (automaat/differentieel) krijgen aan het vrije
+  //     uiteinde van de arm een klein zwart VAST CONTACT (gekanteld vierkantje).
   const cx = 20;
-  const yContact = 15; // hoogte vast contact
-  const yPivot = 35; // draaipunt op de uitgaande geleider
+  const yIn = 14; // onderkant inkomende geleider (boven de onderbreking)
+  const yPivot = 34; // draaipunt op de uitgaande geleider
+  const armEnd = { x: cx - 10, y: 16 }; // vrij uiteinde van de schuine arm (links boven)
   const isBreaker = BREAKER_TYPES.has(type);
 
   // Hoofdlabel rechts van het symbool.
@@ -70,22 +79,23 @@ const AutomaatRender = ({ state, properties }: SymbolRenderProps) => {
 
   return (
     <Group>
-      {/* Inkomende geleider boven */}
-      <Line points={[cx, 0, cx, yContact]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+      {/* Inkomende geleider boven (stopt met onderbreking = open contact) */}
+      <Line points={[cx, 0, cx, yIn]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
 
-      {/* Vast contact: klein zwart blokje (enkel bij beschermingsautomaten) */}
+      {/* Schuin (open) beweegbaar contact: van draaipunt omhoog naar links */}
+      <Line points={[cx, yPivot, armEnd.x, armEnd.y]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+
+      {/* Vast contact: klein gekanteld zwart vierkantje aan het vrije uiteinde
+          van de arm (enkel bij beschermingsautomaten) */}
       {isBreaker ? (
         <Line
-          points={[cx, yContact - 3.5, cx + 3.5, yContact, cx, yContact + 3.5, cx - 3.5, yContact]}
+          points={[armEnd.x, armEnd.y - 3.5, armEnd.x + 3.5, armEnd.y, armEnd.x, armEnd.y + 3.5, armEnd.x - 3.5, armEnd.y]}
           stroke={s}
           strokeWidth={STROKE_WIDTH_THIN}
           closed
           fill={s}
         />
       ) : null}
-
-      {/* Schuin (open) beweegbaar contact */}
-      <Line points={[cx, yPivot, cx + 9, yContact + 3]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
 
       {/* Zekeringscheider: smeltzekering (rechthoekje) op de uitgaande lijn */}
       {type === 'Zekeringscheider' ? (

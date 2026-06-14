@@ -41,6 +41,7 @@ const ContactdoosRender = ({ state, properties }: SymbolRenderProps) => {
   const pe = Boolean(properties.pe?.value ?? true);
   const halfwaterdicht = Boolean(properties.halfwaterdicht?.value ?? false);
   const schakelaar = Boolean(properties.schakelaar?.value ?? false);
+  const kinderbescherming = Boolean(properties.kinderbescherming?.value ?? false);
   const tekst = String(properties.tekst?.value ?? '');
   const aantal = Math.max(1, Math.min(3, Number(properties.aantal?.value ?? 1)));
   const inVerdeelbord = Boolean(properties.in_verdeelbord?.value ?? false);
@@ -74,9 +75,12 @@ const ContactdoosRender = ({ state, properties }: SymbolRenderProps) => {
         />
       ) : null}
 
-      {/* Schakelaar ingebouwd: schuine streep voor een schakelaarcontact bovenop */}
+      {/* Schakelaar ingebouwd: schuine hefboom met voetje bovenop de aansluitlijn */}
       {schakelaar ? (
-        <Line points={[cx, 14, cx + 9, 6]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} />
+        <>
+          <Line points={[cx, 15, cx + 10, 3]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} lineCap="round" />
+          <Line points={[cx + 10, 3, cx + 4, 1]} stroke={s} strokeWidth={STROKE_WIDTH_MAIN} lineCap="round" />
+        </>
       ) : null}
 
       {/* Schuine streepjes (fasen) */}
@@ -123,6 +127,14 @@ const ContactdoosRender = ({ state, properties }: SymbolRenderProps) => {
       })}
       {/* Diameter (horizontaal lijntje bovenaan eerste halve cirkel) */}
       <Line points={[cx - r, halfCircleY, cx + r, halfCircleY]} stroke={s} strokeWidth={STROKE_WIDTH} />
+
+      {/* Kinderbescherming: opstaande voetjes aan de uiteinden van de diameter */}
+      {kinderbescherming ? (
+        <>
+          <Line points={[cx - r, halfCircleY, cx - r, halfCircleY - 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
+          <Line points={[cx + r, halfCircleY, cx + r, halfCircleY - 4]} stroke={s} strokeWidth={STROKE_WIDTH} />
+        </>
+      ) : null}
 
       {/* PE-streep binnen halve cirkel */}
       {pe ? (
@@ -210,6 +222,7 @@ const contactdoosProperties = (preset: CdPreset) => ({
   pe: { label: 'Beschermingsgeleider (PE)', type: 'boolean' as const, defaultValue: preset.pe ?? true },
   halfwaterdicht: { label: 'Halfwaterdicht (h)', type: 'boolean' as const, defaultValue: preset.halfwaterdicht ?? false },
   schakelaar: { label: 'Schakelaar ingebouwd', type: 'boolean' as const, defaultValue: preset.schakelaar ?? false },
+  kinderbescherming: { label: 'Kinderbescherming', type: 'boolean' as const, defaultValue: true },
   transformator: { label: 'Transformator ingebouwd', type: 'boolean' as const, defaultValue: false },
   in_verdeelbord: { label: 'In verdeelbord', type: 'boolean' as const, defaultValue: false },
   aantal: { label: 'Aantal', type: 'number' as const, defaultValue: preset.aantal ?? 1 },
