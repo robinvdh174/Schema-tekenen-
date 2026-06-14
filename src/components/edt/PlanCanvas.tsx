@@ -207,31 +207,48 @@ export const PlanCanvas = () => {
     applyScale(stage.scaleX() * factor, pointer);
   };
 
-  // Knijpen met twee vingers om in/uit te zoomen (iPad/tablet).
+  // Knijpen met twee vingers om in/uit te zoomen (iPad/tablet). Tijdens het
+  // knijpen zetten we het slepen (draggable) uit, zodat de één-vinger-pan niet
+  // met het zoomen vecht — dat maakte het knijpen schokkerig en onbetrouwbaar.
+  const [pinching, setPinching] = useState(false);
   const pinchRef = useRef<{ dist: number; center: { x: number; y: number } } | null>(null);
+
+  const touchDist = (t1: Touch, t2: Touch) =>
+    Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+  const touchCenter = (t1: Touch, t2: Touch) => {
+    const rect = stageRef.current!.container().getBoundingClientRect();
+    return {
+      x: (t1.clientX + t2.clientX) / 2 - rect.left,
+      y: (t1.clientY + t2.clientY) / 2 - rect.top,
+    };
+  };
+
+  const handleTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    if (e.evt.touches.length < 2) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    if (stage.isDragging()) stage.stopDrag();
+    setPinching(true);
+    const [t1, t2] = [e.evt.touches[0], e.evt.touches[1]];
+    pinchRef.current = { dist: touchDist(t1, t2), center: touchCenter(t1, t2) };
+  };
 
   const handleTouchMove = (e: Konva.KonvaEventObject<TouchEvent>) => {
     const touches = e.evt.touches;
-    if (touches.length !== 2) return;
+    if (touches.length < 2) return;
     e.evt.preventDefault();
     const stage = stageRef.current;
     if (!stage) return;
     if (stage.isDragging()) stage.stopDrag();
 
     const [t1, t2] = [touches[0], touches[1]];
-    const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-    const rect = stage.container().getBoundingClientRect();
-    const center = {
-      x: (t1.clientX + t2.clientX) / 2 - rect.left,
-      y: (t1.clientY + t2.clientY) / 2 - rect.top,
-    };
-
+    const dist = touchDist(t1, t2);
+    const center = touchCenter(t1, t2);
     const prev = pinchRef.current;
     if (!prev) {
       pinchRef.current = { dist, center };
       return;
     }
-
     applyScale(stage.scaleX() * (dist / prev.dist), center);
     const dx = center.x - prev.center.x;
     const dy = center.y - prev.center.y;
@@ -243,7 +260,10 @@ export const PlanCanvas = () => {
   };
 
   const handleTouchEnd = (e: Konva.KonvaEventObject<TouchEvent>) => {
-    if (e.evt.touches.length < 2) pinchRef.current = null;
+    if (e.evt.touches.length < 2) {
+      pinchRef.current = null;
+      setPinching(false);
+    }
   };
 
   const selectedMarker = plan.markers.find((m) => m.id === selectedMarkerId) ?? null;
@@ -259,10 +279,11 @@ export const PlanCanvas = () => {
           ref={stageRef}
           width={width}
           height={height}
-          draggable={!pendingNodeId}
+          draggable={!pendingNodeId && !pinching}
           onWheel={handleWheel}
           onClick={handleStageClick}
           onTap={handleStageClick}
+          onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
