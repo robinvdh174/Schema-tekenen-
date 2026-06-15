@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState } from 'react';
-import { ChevronLeft, PanelLeftClose, Search, X } from 'lucide-react';
+import { PanelLeftClose, Search, X } from 'lucide-react';
 import {
   allowedChildKinds,
   kindDef,
@@ -13,15 +13,16 @@ import { useSchemaStore } from '@/store/schemaStore';
 import { SymbolPreview } from './SymbolPreview';
 
 /**
- * Linkerpaneel: het symbolenpalet in twee stappen (zoals Trikker).
- *  1. Kies eerst een categorie (kaart met een voorbeeldsymbool).
- *  2. Kies daarna het specifieke symbool binnen die categorie.
- * Zoeken doorzoekt alle categorieën tegelijk en toont de treffers meteen.
+ * Linkerpaneel: het symbolenpalet in twee kolommen (zoals Trikker).
+ *  - Links een smalle rail met alle categorieën onder elkaar.
+ *  - Daarnaast (rechts) klappen meteen de keuzes van de gekozen categorie open.
+ * Zoeken doorzoekt alle categorieën tegelijk en toont de treffers ernaast.
  * Eén klik plaatst het symbool onder het geselecteerde (of dichtstbijzijnde
  * geschikte) onderdeel.
  */
 
-const SymbolTile = memo(
+/** Eén keuze in de fly-out: symbool links, naam rechts (Trikker-stijl rij). */
+const SymbolRow = memo(
   ({
     item,
     primary,
@@ -36,18 +37,18 @@ const SymbolTile = memo(
       onClick={() => onAdd(item)}
       title={`${item.label} — ${item.description}`}
       className={
-        'group flex flex-col items-center gap-1 rounded-md border p-1.5 text-center transition-colors ' +
+        'group flex w-full items-center gap-2.5 rounded-md border p-1.5 text-left transition-colors ' +
         (primary
           ? 'border-accent/50 bg-panel-light hover:border-accent'
           : 'border-panel-border bg-panel-dark/60 hover:border-accent/50 hover:bg-panel-light')
       }
     >
-      <span className="flex w-full items-center justify-center overflow-hidden rounded bg-white">
-        <SymbolPreview kind={item.kind} overrides={item.props} width={110} height={52} />
+      <span className="flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-white">
+        <SymbolPreview kind={item.kind} overrides={item.props} width={64} height={40} />
       </span>
       <span
         className={
-          'line-clamp-2 w-full text-[10px] leading-tight ' +
+          'min-w-0 flex-1 text-[12px] leading-tight ' +
           (primary ? 'text-slate-100' : 'text-slate-300 group-hover:text-slate-100')
         }
       >
@@ -56,32 +57,49 @@ const SymbolTile = memo(
     </button>
   )
 );
-SymbolTile.displayName = 'SymbolTile';
+SymbolRow.displayName = 'SymbolRow';
 
-/** Categoriekaart met een voorbeeldsymbool als afbeelding. */
-const CategoryCard = memo(
-  ({ group, onOpen }: { group: PaletteGroup; onOpen: (id: string) => void }) => {
+/** Categorie-knop in de rail: voorbeeldsymbool met de categorienaam eronder. */
+const CategoryButton = memo(
+  ({
+    group,
+    active,
+    onSelect,
+  }: {
+    group: PaletteGroup;
+    active: boolean;
+    onSelect: (id: string) => void;
+  }) => {
     const sample = group.items[0];
     return (
       <button
-        onClick={() => onOpen(group.id)}
+        onClick={() => onSelect(group.id)}
         title={group.label}
-        className="group flex flex-col items-center gap-1.5 rounded-md border border-panel-border bg-panel-dark/60 p-2 text-center transition-colors hover:border-accent/50 hover:bg-panel-light"
+        className={
+          'flex w-full flex-col items-center gap-1 rounded-md border px-1 py-1.5 text-center transition-colors ' +
+          (active
+            ? 'border-accent/60 bg-accent/15'
+            : 'border-transparent hover:border-panel-border hover:bg-panel-light')
+        }
       >
         <span className="flex w-full items-center justify-center overflow-hidden rounded bg-white">
           {sample ? (
-            <SymbolPreview kind={sample.kind} overrides={sample.props} width={120} height={56} />
+            <SymbolPreview kind={sample.kind} overrides={sample.props} width={76} height={38} />
           ) : null}
         </span>
-        <span className="text-[11px] font-medium leading-tight text-slate-200 group-hover:text-white">
+        <span
+          className={
+            'line-clamp-2 text-[9px] font-medium leading-tight ' +
+            (active ? 'text-white' : 'text-slate-300')
+          }
+        >
           {group.label}
         </span>
-        <span className="text-[10px] text-slate-500">{group.items.length} symbolen</span>
       </button>
     );
   }
 );
-CategoryCard.displayName = 'CategoryCard';
+CategoryButton.displayName = 'CategoryButton';
 
 export const SymbolPanel = () => {
   const doc = useSchemaStore((s) => s.doc);
@@ -90,7 +108,7 @@ export const SymbolPanel = () => {
   const toggleLeft = useSchemaStore((s) => s.toggleLeftPanel);
 
   const [query, setQuery] = useState('');
-  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [activeGroupId, setActiveGroupId] = useState<string>(PALETTE_GROUPS[0]?.id ?? '');
   const [warning, setWarning] = useState<string | null>(null);
 
   const selected = selectedId ? findNode(doc.tree, selectedId) : null;
@@ -121,13 +139,18 @@ export const SymbolPanel = () => {
     [addComponent]
   );
 
-  const activeGroup = PALETTE_GROUPS.find((g) => g.id === activeGroupId) ?? null;
+  const activeGroup = PALETTE_GROUPS.find((g) => g.id === activeGroupId) ?? PALETTE_GROUPS[0];
   const searchResults = trimmed
     ? PALETTE_GROUPS.flatMap((g) => g.items).filter(matches)
     : [];
 
+  const selectCategory = useCallback((id: string) => {
+    setQuery('');
+    setActiveGroupId(id);
+  }, []);
+
   return (
-    <aside className="panel flex w-72 shrink-0 flex-col border-r">
+    <aside className="panel flex w-80 shrink-0 flex-col border-r">
       <div className="panel-section flex shrink-0 items-center justify-between">
         <p className="panel-heading">Symbolen</p>
         <button onClick={toggleLeft} title="Paneel inklappen" className="btn-icon -my-1">
@@ -151,8 +174,8 @@ export const SymbolPanel = () => {
         )}
       </div>
 
-      {/* Zoeken */}
-      <div className="shrink-0 px-3 pb-1 pt-2">
+      {/* Zoeken (doorzoekt alle categorieën) */}
+      <div className="shrink-0 px-3 pb-2 pt-2">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
           <input
@@ -174,51 +197,49 @@ export const SymbolPanel = () => {
         </div>
       </div>
 
-      {/* Palet: zoekresultaten / categorie-inhoud / categoriekeuze */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-1">
+      {/* Twee kolommen: links de categorie-rail, rechts de keuzes ernaast. */}
+      <div className="flex min-h-0 flex-1">
         {trimmed ? (
-          searchResults.length > 0 ? (
-            <div className="grid grid-cols-2 gap-1.5">
-              {searchResults.map((item) => (
-                <SymbolTile
+          /* Tijdens het zoeken: resultaten over alle categorieën heen. */
+          <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+            {searchResults.length > 0 ? (
+              searchResults.map((item) => (
+                <SymbolRow
                   key={item.id}
                   item={item}
                   primary={primaryKinds.has(item.kind)}
                   onAdd={handleAdd}
                 />
-              ))}
-            </div>
-          ) : (
-            <p className="px-1 py-6 text-center text-xs text-slate-500">
-              Geen symbool gevonden voor “{query}”.
-            </p>
-          )
-        ) : activeGroup ? (
-          <div>
-            <button
-              onClick={() => setActiveGroupId(null)}
-              className="mb-2 flex w-full items-center gap-1 rounded px-1 py-1 text-left text-sm font-medium text-slate-200 hover:bg-panel-light"
-            >
-              <ChevronLeft className="h-4 w-4 shrink-0 text-slate-400" />
-              <span>{activeGroup.label}</span>
-            </button>
-            <div className="grid grid-cols-2 gap-1.5">
-              {activeGroup.items.map((item) => (
-                <SymbolTile
-                  key={item.id}
-                  item={item}
-                  primary={primaryKinds.has(item.kind)}
-                  onAdd={handleAdd}
-                />
-              ))}
-            </div>
+              ))
+            ) : (
+              <p className="px-1 py-6 text-center text-xs text-slate-500">
+                Geen symbool gevonden voor “{query}”.
+              </p>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {PALETTE_GROUPS.map((group) => (
-              <CategoryCard key={group.id} group={group} onOpen={setActiveGroupId} />
-            ))}
-          </div>
+          <>
+            <div className="w-[96px] shrink-0 space-y-1 overflow-y-auto border-r border-panel-border bg-panel-dark/40 px-1.5 py-2">
+              {PALETTE_GROUPS.map((group) => (
+                <CategoryButton
+                  key={group.id}
+                  group={group}
+                  active={activeGroup?.id === group.id}
+                  onSelect={selectCategory}
+                />
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-2">
+              {activeGroup?.items.map((item) => (
+                <SymbolRow
+                  key={item.id}
+                  item={item}
+                  primary={primaryKinds.has(item.kind)}
+                  onAdd={handleAdd}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 
