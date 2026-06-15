@@ -2,8 +2,8 @@
 
 **Dit is de enige juiste, actieve versie van het project.**
 
-Deze branch (`claude/symbol-corrections-review-rn81ep`) is de **standaardbranch**
-en wordt automatisch gepubliceerd naar de live-site:
+Deze branch (`main`) is de **standaardbranch** en wordt automatisch
+gepubliceerd naar de live-site:
 
 👉 **https://robinvdh174.github.io**
 

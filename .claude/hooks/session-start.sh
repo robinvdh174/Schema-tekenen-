@@ -12,7 +12,7 @@
 # ============================================================================
 set -uo pipefail
 
-LIVE_BRANCH="claude/symbol-corrections-review-rn81ep"
+LIVE_BRANCH="main"
 ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 BRANCH="$(git -C "$ROOT" branch --show-current 2>/dev/null || true)"
 [ -z "$BRANCH" ] && BRANCH="$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"

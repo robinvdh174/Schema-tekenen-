@@ -1,9 +1,9 @@
 name: Deploy to GitHub Pages
 
-# De live-site (robinvdh174.github.io) wordt UITSLUITEND vanaf deze branch
-# (claude/symbol-corrections-review-rn81ep) gepubliceerd. Dit is de juiste
-# "foto-versie". De push-trigger is bewust beperkt tot enkel deze branch, zodat
-# geen enkele andere branch de live-site per ongeluk kan overschrijven.
+# De live-site (robinvdh174.github.io) wordt UITSLUITEND vanaf de `main`-branch
+# gepubliceerd. `main` is de officiele, juiste versie ("foto-versie"). De
+# push-trigger is bewust beperkt tot enkel `main`, zodat geen enkele andere
+# branch de live-site per ongeluk kan overschrijven.
 #
 # LET OP: GitHub Pages moet als bron "GitHub Actions" gebruiken (Settings ->
 # Pages -> Source = GitHub Actions). Staat die op "Deploy from a branch", dan
@@ -12,7 +12,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - claude/symbol-corrections-review-rn81ep
+      - main
   workflow_dispatch:
 
 # Grant the workflow write access to Pages deployments and an OIDC token so the

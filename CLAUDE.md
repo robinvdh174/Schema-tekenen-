@@ -8,11 +8,10 @@ Lees dit eerst. Deze afspraken gelden voor élke sessie.
 > gewerkt. Dat mag niet meer. Doe daarom ALTIJD eerst dit:
 
 1. Controleer op welke branch je staat: `git branch --show-current`.
-2. Die MOET **exact** `claude/symbol-corrections-review-rn81ep` zijn (de live-
-   /standaardbranch, zie hieronder).
+2. Die MOET **exact** `main` zijn (de live-/standaardbranch, zie hieronder).
 3. **Komt dit niet overeen → STOP onmiddellijk.** Maak geen enkele wijziging,
    maar meld dit eerst aan de gebruiker. Begin pas met werken nadat je op de
-   juiste branch staat.
+   juiste branch (`main`) staat.
 
 Reden: andere `claude/*`-branches bevatten een **compleet andere/oudere versie**
 van de app. Werk je daarin, dan komt je werk nooit op de live site én kan het de
@@ -20,11 +19,11 @@ juiste versie niet zomaar in (de codebases verschillen volledig).
 
 ## Welke versie/branch is de juiste?
 
-- De **enige juiste, live versie** staat op branch
-  **`claude/symbol-corrections-review-rn81ep`** (dit is ook de standaardbranch).
+- De **enige juiste, live versie** staat op branch **`main`** (dit is ook de
+  standaardbranch).
 - Deze branch wordt automatisch gepubliceerd naar **https://robinvdh174.github.io**
   via GitHub Actions (`.github/workflows/deploy.yml`) bij elke push.
-- Werk en push **uitsluitend** op deze branch. Alle andere `claude/*`-branches
+- Werk en push **uitsluitend** op `main`. Alle andere `claude/*`-branches
   zijn oude/afgekeurde versies en mogen niet gebruikt of gemerged worden;
   verwijder ze bij voorkeur zodat niemand er per ongeluk op verderwerkt.
 
