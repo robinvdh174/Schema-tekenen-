@@ -163,6 +163,16 @@ export const hMetrics = (node: SchemaNode): { adv: number; up: number; down: num
       return { adv: 36, up: 18, down: 32 };
     case 'aftakdoos':
       return { adv: 72, up: 20, down: 34 };
+    case 'communicatie': {
+      const n = num(p.aantal);
+      return { adv: 20 + n * 20 + 20, up: 30, down: 36 };
+    }
+    case 'melder':
+      return { adv: 56, up: 26, down: 34 };
+    case 'aarding':
+      return { adv: 44, up: 18, down: 40 };
+    case 'domotica':
+      return { adv: 66, up: 30, down: 34 };
     case 'stopcontact_dummy':
       return { adv: 40, up: 25, down: 25 };
     case 'automaat':

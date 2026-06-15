@@ -419,6 +419,8 @@ const HLichtpunt = ({ placed }: { placed: PlacedNode }) => {
 const HSchakelaar = ({ placed }: { placed: PlacedNode }) => {
   const p = placed.node.props;
   const type = str(p.type);
+  const verklikker = p.verklikker === true;
+  const signalisatie = p.signalisatie === true;
   const c = { x: 30, y: 0 };
 
   const stroke = (dx: 1 | -1, dy: 1 | -1, ticks: 0 | 1 | 2 | 3) => (
@@ -487,17 +489,49 @@ const HSchakelaar = ({ placed }: { placed: PlacedNode }) => {
             <Text x={22} y={-5} width={16} align="center" text="S" fontFamily={FONT} fontSize={11} fontStyle="bold" fill={INK} />
           </>
         ) : null}
+        {type === 'Vertraagde opening' ? (
+          <>
+            {stroke(1, 1, 1)}
+            <Text x={43} y={-22} text="t" fontFamily={FONT} fontSize={12} fontStyle="italic" fill={INK} />
+          </>
+        ) : null}
+        {type === 'Trekschakelaar' ? (
+          <>
+            {stroke(1, 1, 1)}
+            <L p={[30, 5, 30, 17]} />
+            <L p={[30, 17, 27, 13]} />
+            <L p={[30, 17, 33, 13]} />
+          </>
+        ) : null}
         {type === 'Dimmer' || type === 'Wissel + dimmer' ? (
-          <Line points={[29, -8, 41, -8, 41, -15]} closed fill={INK} stroke={INK} strokeWidth={1} />
+          <Line points={[29, -8, 41, -8, 41, -15]} closed fill={INK} stroke={INK} strokeWidth={SW} />
         ) : null}
         <Circle x={30} y={0} radius={5} stroke={INK} strokeWidth={SW} fill="#ffffff" />
       </>
     );
   }
 
+  const cCircle = type === 'Drukknop' ? 37 : 30;
+
   return (
     <>
       {body}
+      {/* Verklikkerlamp: kruis (×) in het bedieningspunt */}
+      {verklikker ? (
+        <>
+          <L p={[cCircle - 3.5, -3.5, cCircle + 3.5, 3.5]} />
+          <L p={[cCircle - 3.5, 3.5, cCircle + 3.5, -3.5]} />
+        </>
+      ) : null}
+      {/* Signalisatielamp: apart ⊗-lampje boven de schakelaar, verbonden met een lijntje */}
+      {signalisatie ? (
+        <>
+          <L p={[cCircle - 12, -6, cCircle - 5, 0]} />
+          <Circle x={cCircle - 16} y={-10} radius={6} stroke={INK} strokeWidth={SW} fill="#ffffff" />
+          <L p={[cCircle - 20.2, -14.2, cCircle - 11.8, -5.8]} />
+          <L p={[cCircle - 20.2, -5.8, cCircle - 11.8, -14.2]} />
+        </>
+      ) : null}
       {p.halfwaterdicht === true ? <Text x={38} y={-26} text="h" fontFamily={FONT} fontSize={10} fill={INK} /> : null}
       <Adres text={str(p.label)} cx={36} y={24} w={76} />
     </>
@@ -710,6 +744,51 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
       );
       w = 28;
       break;
+    case 'Zonnepaneel (PV)':
+      body = box(
+        <>
+          <L p={[20, 20, 60, -20]} />
+          {/* invallende lichtstralen (pijltjes naar het paneel) */}
+          <L p={[30, -17, 38, -9]} />
+          <L p={[38, -9, 38, -13]} />
+          <L p={[38, -9, 34, -9]} />
+          <L p={[40, -13, 48, -5]} />
+          <L p={[48, -5, 48, -9]} />
+          <L p={[48, -5, 44, -5]} />
+        </>
+      );
+      break;
+    case 'Deurslot':
+      body = box(
+        <>
+          <Circle x={40} y={-4} radius={4} stroke={INK} strokeWidth={SW} />
+          <L p={[40, 0, 37, 9]} />
+          <L p={[40, 0, 43, 9]} />
+        </>
+      );
+      break;
+    case 'Zoemer':
+      body = (
+        <>
+          <L p={[0, 0, 20, 0]} w={SW} />
+          <L p={[20, -14, 20, 14]} w={SW} />
+          <Arc x={20} y={0} innerRadius={14} outerRadius={14} angle={180} rotation={90} stroke={INK} strokeWidth={SW} />
+        </>
+      );
+      w = 16;
+      break;
+    case 'Sirene':
+      body = (
+        <>
+          <L p={[0, 0, 20, 0]} w={SW} />
+          <L p={[20, -14, 20, 14]} w={SW} />
+          <L p={[20, -14, 42, -7]} />
+          <L p={[42, -7, 42, 7]} />
+          <L p={[42, 7, 20, 14]} />
+        </>
+      );
+      w = 24;
+      break;
     case 'Bel':
       body = (
         <>
@@ -773,6 +852,95 @@ const HAftakdoos = ({ placed }: { placed: PlacedNode }) => (
     <Adres text={str(placed.node.props.label)} cx={35} y={20} w={80} />
   </>
 );
+
+/** Communicatiecontactdoos (data/TV/telefoon): socket-halve-cirkel + label. */
+const HCommunicatie = ({ placed }: { placed: PlacedNode }) => {
+  const p = placed.node.props;
+  const type = str(p.type);
+  const n = num(p.aantal);
+  const tag = type.startsWith('Data') ? 'RJ45' : type.startsWith('TV') ? 'TV' : 'T';
+  return (
+    <>
+      <L p={[0, 0, 20, 0]} w={SW} />
+      <Arc x={32} y={0} innerRadius={12} outerRadius={12} angle={180} rotation={90} stroke={INK} strokeWidth={SW} />
+      <L p={[20, -12, 20, 12]} w={SW} />
+      <Text x={24} y={-7} text={tag} fontFamily={FONT} fontSize={9} fontStyle="bold" fill={INK} />
+      {n > 1 ? <Text x={20} y={-26} text={`×${n}`} fontFamily={FONT} fontSize={9} fill={INK} /> : null}
+      <Adres text={str(p.label)} cx={20} y={20} />
+    </>
+  );
+};
+
+/** Melder/detector: vierkantje met aanduiding van het type. */
+const HMelder = ({ placed }: { placed: PlacedNode }) => {
+  const p = placed.node.props;
+  const type = str(p.type);
+  const tag = type.startsWith('CO') ? 'CO' : type.startsWith('Warmte') ? 'θ' : 'RM';
+  return (
+    <>
+      <L p={[0, 0, 14, 0]} w={SW} />
+      <Rect x={14} y={-13} width={26} height={26} stroke={INK} strokeWidth={SW} fill="#ffffff" cornerRadius={3} />
+      {/* rookmelder = cirkel (rookkamer); andere = letteraanduiding */}
+      {tag === 'RM' ? (
+        <>
+          <Circle x={27} y={0} radius={6} stroke={INK} strokeWidth={SW} />
+          <Circle x={27} y={0} radius={2} fill={INK} />
+        </>
+      ) : (
+        <Text x={14} y={-6} width={26} align="center" text={tag} fontFamily={FONT} fontSize={11} fontStyle="bold" fill={INK} />
+      )}
+      <Adres text={str(p.label)} cx={27} y={20} />
+    </>
+  );
+};
+
+/** Aardingssymbool: korte stijglijn met drie aflopende streepjes. */
+const HAarding = ({ placed }: { placed: PlacedNode }) => (
+  <>
+    <L p={[0, 0, 20, 0]} w={SW} />
+    <L p={[20, 0, 20, 8]} w={SW} />
+    <L p={[12, 8, 28, 8]} w={SW} />
+    <L p={[15, 12, 25, 12]} />
+    <L p={[18, 16, 22, 16]} />
+    <Adres text={str(placed.node.props.label)} cx={20} y={24} w={80} />
+  </>
+);
+
+/** Domotica-sturingseenheid: rechthoek in twee delen (sturing boven, basis onder). */
+const HDomotica = ({ placed }: { placed: PlacedNode }) => {
+  const p = placed.node.props;
+  const sturing = str(p.sturing);
+  return (
+    <>
+      <L p={[0, 0, 20, 0]} w={SW} />
+      <Rect x={20} y={-18} width={28} height={36} stroke={INK} strokeWidth={SW} fill="#ffffff" />
+      <L p={[20, 0, 48, 0]} w={SW} />
+      {/* bovenste deel = type sturing */}
+      {sturing === 'Geprogrammeerd' ? (
+        <>
+          <Circle x={34} y={-9} radius={5} stroke={INK} strokeWidth={SW} />
+          <L p={[34, -9, 34, -12]} />
+          <L p={[34, -9, 37, -9]} />
+        </>
+      ) : sturing === 'Drukknop' ? (
+        <>
+          <Circle x={34} y={-9} radius={5} stroke={INK} strokeWidth={SW} />
+          <Circle x={34} y={-9} radius={2} fill={INK} />
+        </>
+      ) : (
+        // Draadloos / Detectie = radiogolven )))
+        <>
+          <Arc x={30} y={-9} innerRadius={4} outerRadius={4} angle={120} rotation={-60} stroke={INK} strokeWidth={SW} />
+          <Arc x={30} y={-9} innerRadius={7} outerRadius={7} angle={120} rotation={-60} stroke={INK} strokeWidth={SW} />
+        </>
+      )}
+      {/* onderste deel = basissymbool (schakelcontact) */}
+      <Circle x={26} y={9} radius={3} stroke={INK} strokeWidth={SW} fill="#ffffff" />
+      <L p={[26, 9, 42, 4]} />
+      <Adres text={str(p.label)} cx={34} y={24} />
+    </>
+  );
+};
 
 /** Zekering in een horizontale ketting (zelden, maar ondersteund). */
 const HBeveiliging = ({ placed }: { placed: PlacedNode }) => {
@@ -931,6 +1099,14 @@ export const glyphFor = (placed: PlacedNode): JSX.Element => {
       return <HAansluitpunt placed={placed} />;
     case 'aftakdoos':
       return <HAftakdoos placed={placed} />;
+    case 'communicatie':
+      return <HCommunicatie placed={placed} />;
+    case 'melder':
+      return <HMelder placed={placed} />;
+    case 'aarding':
+      return <HAarding placed={placed} />;
+    case 'domotica':
+      return <HDomotica placed={placed} />;
     case 'automaat':
     case 'differentieel':
     case 'diffautomaat':
