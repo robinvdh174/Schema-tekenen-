@@ -15,8 +15,12 @@ import { breakerLabelLines, verticalBlockHeight } from '@/edt/layout';
 
 const INK = '#111827';
 const SELECT = '#2563eb';
+// Eén uniforme, dunne lijndikte voor álle symbolen. Vroeger bestond er een
+// tweede, dikkere lijn (SW2) waardoor o.a. stopcontacten dikker oogden dan
+// schakelaars. SW2 verwijst nu naar dezelfde waarde zodat elk symbool exact
+// dezelfde lijndikte heeft (de dunne lijn).
 const SW = 1.3;
-const SW2 = 2;
+const SW2 = 1.3;
 const FONT = 'Arial, Helvetica, sans-serif';
 
 const str = (v: unknown) => String(v ?? '');
@@ -199,22 +203,17 @@ const VBeveiliging = ({ placed }: { placed: PlacedNode }) => {
       ) : (
         <Group x={0} y={-15} rotation={-20}>
           <L p={[0, 0, 0, -30]} />
-          {/* Het gevulde blokje = automatische uitschakeling (thermisch-magnetisch)
-              en hoort dus enkel bij een automaat of differentieelautomaat. Een
-              differentieel- of lastschakelaar is een zuivere schakelaar zonder
-              dat blokje. */}
-          {kind === 'automaat' || kind === 'diffautomaat' ? (
+          {/* Gevuld contactblokje aan het uiteinde van het contact, zoals in het
+              VOLTA-document ("40/0.3A type A", "C20"). Het hoort bij een
+              automaat, differentieel en differentieelautomaat; het onderscheid
+              tussen die toestellen volgt uit het label (Δ-gevoeligheid / curve).
+              Een lastschakelaar (hoofdschakelaar) blijft een zuiver contact
+              zonder blokje. */}
+          {kind === 'automaat' || kind === 'diffautomaat' || kind === 'differentieel' ? (
             <Rect x={-4.5} y={-30} width={4.5} height={10} fill={INK} />
           ) : null}
         </Group>
       )}
-
-      {/* Differentieelfunctie: kleine ringkern (sommatiestroomtransformator)
-          rond de geleider, zodat een differentieel(automaat) duidelijk te
-          onderscheiden is van een gewone automaat of lastschakelaar. */}
-      {kind === 'differentieel' || kind === 'diffautomaat' ? (
-        <Rect x={-5} y={-13} width={10} height={7} stroke={INK} strokeWidth={SW} cornerRadius={3} />
-      ) : null}
 
       {/* gedraaide labels rechts van de zekering */}
       {labels.map((line, i) => (
