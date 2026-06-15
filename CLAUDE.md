@@ -17,6 +17,25 @@ Reden: andere `claude/*`-branches bevatten een **compleet andere/oudere versie**
 van de app. Werk je daarin, dan komt je werk nooit op de live site én kan het de
 juiste versie niet zomaar in (de codebases verschillen volledig).
 
+## 🔎 Werkprincipe — EERST onderzoeken, dan pas antwoorden
+
+> Dit is misgelopen: er werd gegokt ("die instelling staat vast onder Branches")
+> in plaats van het op te zoeken. Dat kostte onnodig tijd en energie.
+
+Houd je daarom altijd aan deze regels:
+
+1. **Gok nooit.** Weet je iets niet zeker, zoek het dan eerst op vóór je het als
+   feit brengt of een instructie geeft.
+2. **Gebruik je bronnen.** Je hebt GitHub-toegang (MCP-tools) én het internet —
+   verifieer instellingen, branchnamen, status en feiten rechtstreeks bij de
+   bron in plaats van uit het geheugen of op gevoel.
+3. **Dubbelcheck het resultaat.** Controleer na een wijziging of die echt
+   gelukt is (bv. de standaard-branch effectief opvragen via de API), en meld
+   pas daarna dat het klaar is.
+4. **Geef nauwkeurige uitleg.** Vertel de gebruiker exact waar iets staat (bv.
+   "Default branch staat onder Settings → **General**"), gecontroleerd, niet
+   aangenomen. Een foute aanwijzing kost ons samen tijd.
+
 ## Welke versie/branch is de juiste?
 
 - De **enige juiste, live versie** staat op branch **`main`** (dit is ook de
