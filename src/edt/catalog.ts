@@ -133,12 +133,23 @@ export const SCHAKELAAR_TYPES = [
   'Dubbele aansteking',
   'Dimmer',
   'Wissel + dimmer',
+  'Vertraagde opening',
+  'Trekschakelaar',
   'Drukknop',
   'Rolluikschakelaar',
   'Bewegingsmelder',
 ];
 
 export const LICHTPUNT_TYPES = ['Lichtpunt', 'LED', 'Spot', 'TL-armatuur'];
+
+/** Communicatie-/datacontactdozen. */
+export const COMM_TYPES = ['Data (RJ45)', 'TV (coax)', 'Telefoon'];
+
+/** Detectoren (branddetectie e.d.). */
+export const MELDER_TYPES = ['Rookmelder', 'CO-melder', 'Warmtemelder'];
+
+/** Geluids-/signalisatietoestellen. */
+export const SIGNAAL_TYPES = ['Bel', 'Zoemer', 'Sirene'];
 
 export const RELAIS_TYPES = [
   'Teleruptor',
@@ -169,9 +180,13 @@ export const TOESTEL_TYPES = [
   'Motor',
   'EV-lader',
   'USB-lader',
+  'Zonnepaneel (PV)',
   'Omvormer (PV)',
   'Transformator',
+  'Deurslot',
   'Bel',
+  'Zoemer',
+  'Sirene',
   'Batterij',
   'Ander toestel',
 ];
@@ -422,6 +437,8 @@ export const CATALOG: KindDef[] = [
         default: 'Enkelpolig',
       },
       { key: 'halfwaterdicht', label: 'Halfwaterdicht (h)', type: 'boolean', default: false },
+      { key: 'verklikker', label: 'Verklikkerlamp (×)', type: 'boolean', default: false },
+      { key: 'signalisatie', label: 'Signalisatielamp', type: 'boolean', default: false },
       labelProp(),
     ],
   },
@@ -459,6 +476,60 @@ export const CATALOG: KindDef[] = [
     category: 'verbruiker',
     childCategories: ['verbruiker'],
     props: [labelProp()],
+  },
+
+  /* ------------------------------------------------- data & communicatie */
+  {
+    kind: 'communicatie',
+    label: 'Communicatiecontactdoos',
+    description: 'Data (RJ45), TV (coax) of telefoon',
+    category: 'verbruiker',
+    childCategories: ['verbruiker'],
+    props: [
+      { key: 'type', label: 'Type', type: 'select', options: COMM_TYPES, default: 'Data (RJ45)' },
+      { key: 'aantal', label: 'Aantal (op deze plaats)', type: 'number', default: 1 },
+      labelProp(),
+    ],
+  },
+
+  /* ----------------------------------------------- detectie & signalisatie */
+  {
+    kind: 'melder',
+    label: 'Melder / detector',
+    description: 'Rook-, CO- of warmtemelder',
+    category: 'verbruiker',
+    childCategories: ['verbruiker'],
+    props: [
+      { key: 'type', label: 'Type', type: 'select', options: MELDER_TYPES, default: 'Rookmelder' },
+      labelProp(),
+    ],
+  },
+
+  /* ----------------------------------------------------- overige symbolen */
+  {
+    kind: 'aarding',
+    label: 'Aarding',
+    description: 'Aardingspunt / aardelektrode',
+    category: 'verbruiker',
+    childCategories: ['verbruiker'],
+    props: [labelProp('Bv. aardingslus, aardpen …')],
+  },
+  {
+    kind: 'domotica',
+    label: 'Domotica-sturing',
+    description: 'Sturingseenheid (bv. KNX, gestuurde uitgang)',
+    category: 'verbruiker',
+    childCategories: ['verbruiker'],
+    props: [
+      {
+        key: 'sturing',
+        label: 'Type sturing',
+        type: 'select',
+        options: ['Drukknop', 'Draadloos', 'Geprogrammeerd', 'Detectie'],
+        default: 'Geprogrammeerd',
+      },
+      labelProp(),
+    ],
   },
 ];
 
@@ -515,6 +586,21 @@ const typeItem = (kind: string, type: string): PaletteItem => ({
   props: { type },
 });
 
+/** Palet-tegel voor een variant met vrije props-overrides en eigen label. */
+const variantItem = (
+  id: string,
+  kind: string,
+  label: string,
+  props: Record<string, PropValue>,
+  description?: string
+): PaletteItem => ({
+  id,
+  kind,
+  label,
+  description: description ?? `${kindDef(kind).label} — ${label}`,
+  props,
+});
+
 export const PALETTE_GROUPS: PaletteGroup[] = [
   {
     id: 'voeding',
@@ -536,12 +622,16 @@ export const PALETTE_GROUPS: PaletteGroup[] = [
   {
     id: 'stopcontacten',
     label: 'Stopcontacten & aansluitingen',
-    items: [baseItem('stopcontact'), baseItem('aansluitpunt'), baseItem('aftakdoos')],
+    items: [baseItem('stopcontact'), baseItem('aansluitpunt'), baseItem('aftakdoos'), baseItem('aarding')],
   },
   {
     id: 'schakelaars',
     label: 'Schakelaars',
-    items: SCHAKELAAR_TYPES.map((t) => typeItem('schakelaar', t)),
+    items: [
+      ...SCHAKELAAR_TYPES.map((t) => typeItem('schakelaar', t)),
+      variantItem('schakelaar:verklikker', 'schakelaar', 'Met verklikkerlamp', { type: 'Enkelpolig', verklikker: true }, 'Schakelaar met verklikkerlamp (×)'),
+      variantItem('schakelaar:signalisatie', 'schakelaar', 'Met signalisatielamp', { type: 'Enkelpolig', signalisatie: true }, 'Schakelaar met signalisatielamp'),
+    ],
   },
   {
     id: 'verlichting',
@@ -549,14 +639,27 @@ export const PALETTE_GROUPS: PaletteGroup[] = [
     items: LICHTPUNT_TYPES.map((t) => typeItem('lichtpunt', t)),
   },
   {
+    id: 'data',
+    label: 'Data & communicatie',
+    items: COMM_TYPES.map((t) => typeItem('communicatie', t)),
+  },
+  {
+    id: 'detectie',
+    label: 'Detectie & signalisatie',
+    items: [
+      ...MELDER_TYPES.map((t) => typeItem('melder', t)),
+      ...SIGNAAL_TYPES.map((t) => typeItem('toestel', t)),
+    ],
+  },
+  {
     id: 'sturing',
     label: 'Relais & sturing',
-    items: RELAIS_TYPES.map((t) => typeItem('relais', t)),
+    items: [...RELAIS_TYPES.map((t) => typeItem('relais', t)), baseItem('domotica')],
   },
   {
     id: 'toestellen',
     label: 'Vaste toestellen',
-    items: TOESTEL_TYPES.map((t) => typeItem('toestel', t)),
+    items: TOESTEL_TYPES.filter((t) => !SIGNAAL_TYPES.includes(t)).map((t) => typeItem('toestel', t)),
   },
 ];
 
@@ -597,6 +700,12 @@ export const nodeTitle = (node: SchemaNode): string => {
       return str('type');
     case 'toestel':
       return str('type');
+    case 'communicatie':
+      return str('type');
+    case 'melder':
+      return str('type');
+    case 'domotica':
+      return `Domotica (${str('sturing')})`;
     default:
       return def.label;
   }
