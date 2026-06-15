@@ -235,17 +235,23 @@ const VBeveiliging = ({ placed }: { placed: PlacedNode }) => {
       ) : (
         <Group x={0} y={-15} rotation={-20}>
           <L p={[0, 0, 0, -30]} />
-          {/* Gevuld contactblokje aan het uiteinde van het contact, zoals in het
-              VOLTA-document ("40/0.3A type A", "C20"). Het hoort bij een
-              automaat, differentieel en differentieelautomaat; het onderscheid
-              tussen die toestellen volgt uit het label (Δ-gevoeligheid / curve).
-              Een lastschakelaar (hoofdschakelaar) blijft een zuiver contact
-              zonder blokje. */}
-          {kind === 'automaat' || kind === 'diffautomaat' || kind === 'differentieel' ? (
+          {/* Gevuld contactblokje = maximumstroominrichting (M), de
+              overstroombeveiliging. Hoort dus bij de automaat en de
+              differentieelautomaat. Een zuivere differentieelschakelaar en een
+              lastschakelaar (hoofdschakelaar) hebben dit blokje niet. */}
+          {kind === 'automaat' || kind === 'diffautomaat' ? (
             <Rect x={-4.5} y={-30} width={4.5} height={10} fill={INK} />
           ) : null}
         </Group>
       )}
+
+      {/* Δ-merkteken = differentieelinrichting (verliesstroom). Hoort bij de
+          differentieelschakelaar en de differentieelautomaat. Samen met het
+          contactblokje maakt dit elk toestel AREI-correct herkenbaar:
+          automaat = blokje, differentieel = Δ, differentieelautomaat = blokje + Δ. */}
+      {kind === 'differentieel' || kind === 'diffautomaat' ? (
+        <Line points={[-21, -20, -11, -20, -16, -29, -21, -20]} closed stroke={INK} strokeWidth={SW} />
+      ) : null}
 
       {/* gedraaide labels rechts van de zekering */}
       {labels.map((line, i) => (
