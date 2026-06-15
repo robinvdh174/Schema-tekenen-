@@ -26,9 +26,41 @@ const FONT = 'Arial, Helvetica, sans-serif';
 const str = (v: unknown) => String(v ?? '');
 const num = (v: unknown, d = 1) => Math.max(1, Math.round(Number(v ?? d) || d));
 
+/** Aantal geleiders uit een kabeltype afleiden, bv. "XVB 3G2,5" → 3,
+ *  "EXVB 4G10" → 4, "XVB 2x1,5" → 2, "VOB 1,5" → 1 (eenaderig). */
+const conductorCount = (kabel: string): number => {
+  const m = kabel.match(/(\d+)\s*[GgxX]/);
+  return m ? Math.max(1, parseInt(m[1], 10)) : 1;
+};
+
 /* ------------------------------------------------------------------ helpers */
 
 const L = ({ p, w = SW }: { p: number[]; w?: number }) => <Line points={p} stroke={INK} strokeWidth={w} />;
+
+/** AREI-aanduiding van het aantal geleiders op een (verticale) leiding:
+ *  schuine streepjes (≤4 geleiders) of één streep + getal (≥5), zoals in het
+ *  VOLTA-document ("///" resp. "/5"). Getekend rond punt (x, y) op de lijn. */
+const ConductorTicks = ({ x, y, n }: { x: number; y: number; n: number }) => {
+  if (n <= 1) {
+    return <L p={[x - 5, y + 4, x + 5, y - 4]} />;
+  }
+  if (n >= 5) {
+    return (
+      <>
+        <L p={[x - 5, y + 4, x + 5, y - 4]} />
+        <Text x={x + 6} y={y - 10} text={String(n)} fontFamily={FONT} fontSize={9} fill={INK} />
+      </>
+    );
+  }
+  return (
+    <>
+      {Array.from({ length: n }, (_, i) => {
+        const yy = y - ((n - 1) * 4) / 2 + i * 4;
+        return <L key={i} p={[x - 5, yy + 3, x + 5, yy - 3]} />;
+      })}
+    </>
+  );
+};
 
 /** Cursief adres/lokaal gecentreerd onder het symbool. */
 const Adres = ({ text, cx, y, w = 90 }: { text: string; cx: number; y: number; w?: number }) =>
@@ -229,9 +261,14 @@ const VBeveiliging = ({ placed }: { placed: PlacedNode }) => {
         </>
       ) : null}
 
-      {/* kabel naar boven met kabeltype ernaast */}
+      {/* kabel naar boven met kabeltype ernaast + AREI-geleideraanduiding */}
       <L p={[0, contactTop - (selectief ? 23 : 0), 0, -h]} w={SW} />
-      {kabel ? <VText x={13} y={contactTop - (selectief ? 23 : 0) - 6} text={kabel} /> : null}
+      {kabel ? (
+        <>
+          <ConductorTicks x={0} y={contactTop - (selectief ? 23 : 0) - 12} n={conductorCount(kabel)} />
+          <VText x={13} y={contactTop - (selectief ? 23 : 0) - 6} text={kabel} />
+        </>
+      ) : null}
 
       {/* kringnummer linksonder */}
       {kringnr ? (
