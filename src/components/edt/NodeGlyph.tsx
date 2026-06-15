@@ -321,13 +321,13 @@ const HStopcontact = ({ placed }: { placed: PlacedNode }) => {
       {units.map((ux) => (
         <Group key={ux}>
           <L p={[ux, 0, ux + 20, 0]} w={SW} />
-          {/* halve cirkel met de bolle kant naar de lijn */}
-          <Arc x={ux + 35} y={0} innerRadius={15} outerRadius={15} angle={180} rotation={90} stroke={INK} strokeWidth={SW2} />
-          {aarding ? <L p={[ux + 20, -15, ux + 20, 15]} w={SW2} /> : null}
+          {/* halve cirkel met de bolle kant naar de lijn (iets kleinere diameter) */}
+          <Arc x={ux + 32} y={0} innerRadius={12} outerRadius={12} angle={180} rotation={90} stroke={INK} strokeWidth={SW2} />
+          {aarding ? <L p={[ux + 20, -12, ux + 20, 12]} w={SW2} /> : null}
           {kv ? (
             <>
-              <L p={[ux + 35, -20, ux + 35, -14.1]} w={SW2} />
-              <L p={[ux + 35, 20, ux + 35, 14.1]} w={SW2} />
+              <L p={[ux + 32, -17, ux + 32, -11.1]} w={SW2} />
+              <L p={[ux + 32, 17, ux + 32, 11.1]} w={SW2} />
             </>
           ) : null}
         </Group>
