@@ -3,11 +3,14 @@ import { Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type Konva from 'konva';
 import { Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { layoutTree } from '@/edt/layout';
+import { buildLabelSpecs } from '@/edt/labels';
+import { labelOffset } from '@/edt/model';
 import { computePlanNumbering, UNASSIGNED_GROUP, VOEDING_GROUP } from '@/edt/plan';
 import { registerExporter, registerFitView } from '@/edt/exporter';
 import { useSchemaStore } from '@/store/schemaStore';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { NodeGlyph } from './NodeGlyph';
+import { DraggableLabel } from './DraggableLabel';
 
 const INK = '#111827';
 const FONT = 'Arial, Helvetica, sans-serif';
@@ -27,6 +30,7 @@ export const SchemaCanvas = () => {
   const doc = useSchemaStore((s) => s.doc);
   const selectedId = useSchemaStore((s) => s.selectedId);
   const select = useSchemaStore((s) => s.select);
+  const setLabelOffset = useSchemaStore((s) => s.setLabelOffset);
 
   const layout = useMemo(() => layoutTree(doc.tree), [doc.tree]);
   const numbering = useMemo(() => computePlanNumbering(doc.tree), [doc.tree]);
@@ -253,6 +257,23 @@ export const SchemaCanvas = () => {
                 onSelect={select}
               />
             ))}
+
+            {/* Versleepbare tekstlabels (kringnummer, omschrijving, kabel,
+                waarde-aanduidingen, adres/lokaal). Bovenop de symbolen zodat
+                ze altijd vast te pakken zijn. */}
+            {layout.placed.map((placed) =>
+              buildLabelSpecs(placed.node, placed.orient, placed.kringnr).map((spec) => (
+                <DraggableLabel
+                  key={`${placed.node.id}-${spec.key}`}
+                  placed={placed}
+                  spec={spec}
+                  offset={labelOffset(placed.node, spec.key)}
+                  selected={placed.node.id === selectedId}
+                  onSelect={select}
+                  onMove={setLabelOffset}
+                />
+              ))
+            )}
 
             {/* Componentnummers (zelfde nummering als op het foto-plan) */}
             <Group listening={false}>

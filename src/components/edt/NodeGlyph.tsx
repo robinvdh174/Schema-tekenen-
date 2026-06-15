@@ -13,7 +13,7 @@ import { breakerLabelLines, verticalBlockHeight } from '@/edt/layout';
  *    omhoog (negatieve y) tot (0, -blokhoogte).
  */
 
-const INK = '#111827';
+export const INK = '#111827';
 const SELECT = '#2563eb';
 // Eén uniforme, dunne lijndikte voor álle symbolen. Vroeger bestond er een
 // tweede, dikkere lijn (SW2) waardoor o.a. stopcontacten dikker oogden dan
@@ -21,7 +21,7 @@ const SELECT = '#2563eb';
 // dezelfde lijndikte heeft (de dunne lijn).
 const SW = 1.3;
 const SW2 = 1.3;
-const FONT = 'Arial, Helvetica, sans-serif';
+export const FONT = 'Arial, Helvetica, sans-serif';
 
 const str = (v: unknown) => String(v ?? '');
 const num = (v: unknown, d = 1) => Math.max(1, Math.round(Number(v ?? d) || d));
@@ -63,7 +63,7 @@ const ConductorTicks = ({ x, y, n }: { x: number; y: number; n: number }) => {
 };
 
 /** Cursief adres/lokaal gecentreerd onder het symbool. */
-const Adres = ({ text, cx, y, w = 90 }: { text: string; cx: number; y: number; w?: number }) =>
+export const Adres = ({ text, cx, y, w = 90 }: { text: string; cx: number; y: number; w?: number }) =>
   text ? (
     <Text
       x={cx - w / 2}
@@ -124,7 +124,7 @@ const Sinus = ({ x, y }: { x: number; y: number }) => (
 );
 
 /** Tekst die verticaal langs de stijglijn loopt (leest van onder naar boven). */
-const VText = ({
+export const VText = ({
   x,
   y,
   text,
@@ -213,13 +213,12 @@ const VTeller = ({ placed }: { placed: PlacedNode }) => {
 /** Zekering/automaat/differentieel op de stijglijn — zoals de referentie:
  *  schuine lijn (-20°) met zwart blokje, gedraaide tekstlabels rechts. */
 const VBeveiliging = ({ placed }: { placed: PlacedNode }) => {
-  const { node, kringnr } = placed;
+  const { node } = placed;
   const p = node.props;
   const kind = node.kind;
   const h = verticalBlockHeight(node);
   const selectief = p.selectief === true;
   const kabel = str(p.kabel).trim();
-  const labels = breakerLabelLines(node);
   const contactTop = -45; // 15 stub + 30 contact
 
   return (
@@ -245,6 +244,10 @@ const VBeveiliging = ({ placed }: { placed: PlacedNode }) => {
         </Group>
       )}
 
+      {/* De waarde-, kabel-, kring- en omschrijvingslabels worden als
+          afzonderlijke, versleepbare tekstlabels getekend (zie labels.tsx /
+          SchemaCanvas) zodat ze vrij te plaatsen zijn. */}
+
       {/* Δ-merkteken = differentieelinrichting (verliesstroom). Hoort bij de
           differentieelschakelaar en de differentieelautomaat. Samen met het
           contactblokje maakt dit elk toestel AREI-correct herkenbaar:
@@ -253,10 +256,6 @@ const VBeveiliging = ({ placed }: { placed: PlacedNode }) => {
         <Line points={[-21, -20, -11, -20, -16, -29, -21, -20]} closed stroke={INK} strokeWidth={SW} />
       ) : null}
 
-      {/* gedraaide labels rechts van de zekering */}
-      {labels.map((line, i) => (
-        <VText key={i} x={15 + i * 11} y={0} text={line} centerOn={-28} />
-      ))}
 
       {/* selectief differentieel: S-kadertje boven de zekering */}
       {selectief ? (
@@ -267,32 +266,12 @@ const VBeveiliging = ({ placed }: { placed: PlacedNode }) => {
         </>
       ) : null}
 
-      {/* kabel naar boven met kabeltype ernaast + AREI-geleideraanduiding */}
+      {/* kabel naar boven met AREI-geleideraanduiding (het kabeltype zelf is
+          een versleepbaar label) */}
       <L p={[0, contactTop - (selectief ? 23 : 0), 0, -h]} w={SW} />
       {kabel ? (
-        <>
-          <ConductorTicks x={0} y={contactTop - (selectief ? 23 : 0) - 12} n={conductorCount(kabel)} />
-          <VText x={13} y={contactTop - (selectief ? 23 : 0) - 6} text={kabel} />
-        </>
+        <ConductorTicks x={0} y={contactTop - (selectief ? 23 : 0) - 12} n={conductorCount(kabel)} />
       ) : null}
-
-      {/* kringnummer linksonder */}
-      {kringnr ? (
-        <Text
-          x={-68}
-          y={-16}
-          width={60}
-          align="right"
-          text={kringnr}
-          fontFamily={FONT}
-          fontSize={12}
-          fontStyle="bold"
-          fill={INK}
-        />
-      ) : null}
-
-      {/* omschrijving van de kring: verticale vette tekst links */}
-      {str(p.label) ? <VText x={-8} y={-52} text={str(p.label)} size={11} bold /> : null}
     </>
   );
 };
@@ -310,7 +289,7 @@ const VRelais = ({ placed }: { placed: PlacedNode }) => {
   );
 };
 
-const VOverspanning = ({ placed }: { placed: PlacedNode }) => (
+const VOverspanning = (_: { placed: PlacedNode }) => (
   <>
     <L p={[0, 0, 0, -12]} w={SW} />
     <Rect x={-7.5} y={-42} width={15} height={30} stroke={INK} strokeWidth={SW} fill="#ffffff" />
@@ -321,7 +300,6 @@ const VOverspanning = ({ placed }: { placed: PlacedNode }) => (
     <L p={[0, -22, -3, -18]} />
     <L p={[0, -22, 3, -18]} />
     <Text x={11} y={-32} text="SPD" fontFamily={FONT} fontSize={8.5} fill="#475569" />
-    <Adres text={str(placed.node.props.label)} cx={0} y={8} w={80} />
   </>
 );
 
@@ -358,7 +336,6 @@ const HStopcontact = ({ placed }: { placed: PlacedNode }) => {
   const aarding = p.aarding !== false;
   const kv = p.kinderveiligheid !== false;
   const units = Array.from({ length: n }, (_, i) => i * 20);
-  const totalW = 20 + n * 20 + 17;
   return (
     <>
       {units.map((ux) => (
@@ -378,7 +355,6 @@ const HStopcontact = ({ placed }: { placed: PlacedNode }) => {
       {p.halfwaterdicht === true ? (
         <Text x={24} y={-29} text="h" fontFamily={FONT} fontSize={10} fill={INK} />
       ) : null}
-      <Adres text={str(p.label)} cx={totalW / 2 + 8} y={24} />
     </>
   );
 };
@@ -454,7 +430,6 @@ const HLichtpunt = ({ placed }: { placed: PlacedNode }) => {
       {upper ? (
         <Text x={cx - 14} y={-22} width={36} align="center" text={upper} fontFamily={FONT} fontSize={8} fill={INK} />
       ) : null}
-      <Adres text={str(p.label)} cx={cx + 4} y={22} />
     </>
   );
 };
@@ -576,7 +551,6 @@ const HSchakelaar = ({ placed }: { placed: PlacedNode }) => {
         </>
       ) : null}
       {p.halfwaterdicht === true ? <Text x={38} y={-26} text="h" fontFamily={FONT} fontSize={10} fill={INK} /> : null}
-      <Adres text={str(p.label)} cx={36} y={24} w={76} />
     </>
   );
 };
@@ -585,7 +559,6 @@ const HSchakelaar = ({ placed }: { placed: PlacedNode }) => {
 const HToestel = ({ placed }: { placed: PlacedNode }) => {
   const p = placed.node.props;
   const type = str(p.type);
-  const vermogen = str(p.vermogen).trim();
 
   const box = (inner: JSX.Element | null, w = 40) => (
     <>
@@ -596,7 +569,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
   );
 
   let body: JSX.Element;
-  let w = 40;
   switch (type) {
     case 'Wasmachine':
       body = box(
@@ -688,7 +660,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <HatchedRect x={20} y={-15} w={50} h={30} />
         </>
       );
-      w = 50;
       break;
     case 'Verwarming (accumulatie)':
       body = (
@@ -698,7 +669,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <HatchedRect x={25} y={-10} w={40} h={20} />
         </>
       );
-      w = 50;
       break;
     case 'Motor':
     case 'Warmtepomp':
@@ -731,7 +701,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <Circle x={40} y={0} radius={5} stroke={INK} strokeWidth={SW} />
         </>
       );
-      w = 30;
       break;
     case 'EV-lader':
       body = (
@@ -752,7 +721,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <Text x={18} y={4} text="E  V" fontFamily={FONT} fontSize={6} fontStyle="bold" fill={INK} />
         </>
       );
-      w = 46;
       break;
     case 'USB-lader':
       body = (
@@ -765,7 +733,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <Text x={52} y={-3} text="USB" fontFamily={FONT} fontSize={10} fill={INK} />
         </>
       );
-      w = 60;
       break;
     case 'Omvormer (PV)':
       body = box(
@@ -785,7 +752,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <Circle x={40} y={0} radius={8} stroke={INK} strokeWidth={SW} />
         </>
       );
-      w = 28;
       break;
     case 'Zonnepaneel (PV)':
       body = box(
@@ -818,7 +784,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <Arc x={20} y={0} innerRadius={14} outerRadius={14} angle={180} rotation={90} stroke={INK} strokeWidth={SW} />
         </>
       );
-      w = 16;
       break;
     case 'Sirene':
       body = (
@@ -830,7 +795,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <L p={[42, 7, 20, 14]} />
         </>
       );
-      w = 24;
       break;
     case 'Bel':
       body = (
@@ -840,7 +804,6 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <Arc x={20} y={0} innerRadius={15} outerRadius={15} angle={180} rotation={-90} stroke={INK} strokeWidth={SW2} />
         </>
       );
-      w = 16;
       break;
     case 'Batterij':
       body = (
@@ -853,46 +816,29 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
           <L p={[49, -8, 49, 8]} w={3} />
         </>
       );
-      w = 30;
       break;
     default:
       body = box(null);
       break;
   }
 
-  const cxText = 20 + w / 2;
-  return (
-    <>
-      {body}
-      <Text
-        x={cxText - 45}
-        y={24}
-        width={90}
-        align="center"
-        text={type + (vermogen ? ` — ${vermogen}` : '')}
-        fontFamily={FONT}
-        fontSize={8.5}
-        fill="#475569"
-      />
-      <Adres text={str(p.label)} cx={cxText} y={36} />
-    </>
-  );
+  // Het type/vermogen-bijschrift en het adres/lokaal zijn versleepbare labels
+  // (zie labels.tsx / SchemaCanvas) en worden hier dus niet meer getekend.
+  return <>{body}</>;
 };
 
-const HAansluitpunt = ({ placed }: { placed: PlacedNode }) => (
+const HAansluitpunt = (_: { placed: PlacedNode }) => (
   <>
     <L p={[0, 0, 20, 0]} w={SW} />
     <Circle x={25} y={0} radius={5} stroke={INK} strokeWidth={SW} />
-    <Adres text={str(placed.node.props.label)} cx={18} y={14} w={70} />
   </>
 );
 
-const HAftakdoos = ({ placed }: { placed: PlacedNode }) => (
+const HAftakdoos = (_: { placed: PlacedNode }) => (
   <>
     <L p={[0, 0, 20, 0]} w={SW} />
     <Circle x={35} y={0} radius={15} stroke={INK} strokeWidth={SW} />
     <Circle x={35} y={0} radius={7.5} fill={INK} />
-    <Adres text={str(placed.node.props.label)} cx={35} y={20} w={80} />
   </>
 );
 
@@ -909,7 +855,6 @@ const HCommunicatie = ({ placed }: { placed: PlacedNode }) => {
       <L p={[20, -12, 20, 12]} w={SW} />
       <Text x={24} y={-7} text={tag} fontFamily={FONT} fontSize={9} fontStyle="bold" fill={INK} />
       {n > 1 ? <Text x={20} y={-26} text={`×${n}`} fontFamily={FONT} fontSize={9} fill={INK} /> : null}
-      <Adres text={str(p.label)} cx={20} y={20} />
     </>
   );
 };
@@ -932,20 +877,18 @@ const HMelder = ({ placed }: { placed: PlacedNode }) => {
       ) : (
         <Text x={14} y={-6} width={26} align="center" text={tag} fontFamily={FONT} fontSize={11} fontStyle="bold" fill={INK} />
       )}
-      <Adres text={str(p.label)} cx={27} y={20} />
     </>
   );
 };
 
 /** Aardingssymbool: korte stijglijn met drie aflopende streepjes. */
-const HAarding = ({ placed }: { placed: PlacedNode }) => (
+const HAarding = (_: { placed: PlacedNode }) => (
   <>
     <L p={[0, 0, 20, 0]} w={SW} />
     <L p={[20, 0, 20, 8]} w={SW} />
     <L p={[12, 8, 28, 8]} w={SW} />
     <L p={[15, 12, 25, 12]} />
     <L p={[18, 16, 22, 16]} />
-    <Adres text={str(placed.node.props.label)} cx={20} y={24} w={80} />
   </>
 );
 
@@ -980,7 +923,6 @@ const HDomotica = ({ placed }: { placed: PlacedNode }) => {
       {/* onderste deel = basissymbool (schakelcontact) */}
       <Circle x={26} y={9} radius={3} stroke={INK} strokeWidth={SW} fill="#ffffff" />
       <L p={[26, 9, 42, 4]} />
-      <Adres text={str(p.label)} cx={34} y={24} />
     </>
   );
 };
@@ -1078,12 +1020,11 @@ const HRelais = ({ placed }: { placed: PlacedNode }) => {
       <L p={[0, 0, 20, 0]} w={SW} />
       <Rect x={20} y={-13} width={40} height={26} stroke={INK} strokeWidth={SW} fill="#ffffff" />
       {inner}
-      <Adres text={str(p.label)} cx={40} y={20} w={80} />
     </>
   );
 };
 
-const HOverspanning = ({ placed }: { placed: PlacedNode }) => (
+const HOverspanning = (_: { placed: PlacedNode }) => (
   <>
     <L p={[0, 0, 20, 0]} w={SW} />
     <Rect x={20} y={-15} width={15} height={30} stroke={INK} strokeWidth={SW} fill="#ffffff" />
@@ -1097,7 +1038,6 @@ const HOverspanning = ({ placed }: { placed: PlacedNode }) => (
     <L p={[19.5, 26, 35.5, 26]} w={SW2} />
     <L p={[22.5, 30, 32.5, 30]} />
     <L p={[25.5, 34, 29.5, 34]} />
-    <Adres text={str(placed.node.props.label)} cx={28} y={38} w={70} />
   </>
 );
 

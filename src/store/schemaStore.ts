@@ -5,8 +5,10 @@ import {
   createNode,
   findNode,
   findParent,
+  labelOffset,
   mapNode,
   removeNode,
+  setNodeLabelOffset,
   walk,
 } from '@/edt/model';
 import { allowedChildKinds, defaultProps, kindDef } from '@/edt/catalog';
@@ -172,6 +174,13 @@ interface SchemaState {
   moveSelected: (direction: -1 | 1) => void;
   updateProp: (id: string, key: string, value: PropValue) => void;
 
+  /** Verschuift een tekstlabel naar een exacte offset (vrij slepen). */
+  setLabelOffset: (id: string, key: string, dx: number, dy: number) => void;
+  /** Duwt een tekstlabel een stapje in een richting (knoppen in het paneel). */
+  nudgeLabel: (id: string, key: string, dx: number, dy: number) => void;
+  /** Zet een tekstlabel terug op zijn standaardplaats. */
+  resetLabel: (id: string, key: string) => void;
+
   setView: (view: EditorView) => void;
   setPendingPlanNode: (nodeId: string | null) => void;
   selectMarker: (id: string | null) => void;
@@ -323,6 +332,41 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
       commit((d) => ({
         ...d,
         tree: mapNode(d.tree, id, (n) => ({ ...n, props: { ...n.props, [key]: value } })),
+      }));
+    },
+
+    setLabelOffset: (id, key, dx, dy) => {
+      const node = findNode(get().doc.tree, id);
+      if (!node) return;
+      const rounded = { dx: Math.round(dx), dy: Math.round(dy) };
+      const current = labelOffset(node, key);
+      if (current.dx === rounded.dx && current.dy === rounded.dy) return;
+      commit((d) => ({
+        ...d,
+        tree: mapNode(d.tree, id, (n) => setNodeLabelOffset(n, key, rounded)),
+      }));
+    },
+
+    nudgeLabel: (id, key, dx, dy) => {
+      const node = findNode(get().doc.tree, id);
+      if (!node) return;
+      const current = labelOffset(node, key);
+      commit((d) => ({
+        ...d,
+        tree: mapNode(d.tree, id, (n) =>
+          setNodeLabelOffset(n, key, { dx: current.dx + dx, dy: current.dy + dy })
+        ),
+      }));
+    },
+
+    resetLabel: (id, key) => {
+      const node = findNode(get().doc.tree, id);
+      if (!node) return;
+      const current = labelOffset(node, key);
+      if (current.dx === 0 && current.dy === 0) return;
+      commit((d) => ({
+        ...d,
+        tree: mapNode(d.tree, id, (n) => setNodeLabelOffset(n, key, { dx: 0, dy: 0 })),
       }));
     },
 

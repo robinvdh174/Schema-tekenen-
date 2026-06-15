@@ -1,9 +1,24 @@
-import { useId } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, PanelRightClose, Trash2, Zap } from 'lucide-react';
-import { findNode, findParent } from '@/edt/model';
+import { useId, useMemo } from 'react';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Copy,
+  Move,
+  PanelRightClose,
+  RotateCcw,
+  Trash2,
+  Zap,
+} from 'lucide-react';
+import { findNode, findParent, labelOffset, type SchemaNode } from '@/edt/model';
 import { kindDef, nodeTitle, type PropDef } from '@/edt/catalog';
-import { computeKringNumbers } from '@/edt/layout';
+import { computeKringNumbers, layoutTree } from '@/edt/layout';
+import { labelKeysFor } from '@/edt/labels';
 import { useSchemaStore } from '@/store/schemaStore';
+
+/** Stapgrootte (in schema-eenheden) per klik op een richtingsknop. */
+const NUDGE = 6;
 
 const Field = ({
   def,
@@ -79,6 +94,73 @@ const Field = ({
   );
 };
 
+/**
+ * Knoppen om de tekstlabels van een component te verplaatsen: per label vier
+ * richtingsknoppen (links/boven/onder/rechts) en een terugzet-knop. Voor exacte
+ * plaatsing kan de gebruiker het label ook rechtstreeks op het schema slepen.
+ */
+const LabelControls = ({
+  node,
+  specs,
+}: {
+  node: SchemaNode;
+  specs: { key: string; label: string }[];
+}) => {
+  const nudgeLabel = useSchemaStore((s) => s.nudgeLabel);
+  const resetLabel = useSchemaStore((s) => s.resetLabel);
+  if (specs.length === 0) return null;
+
+  const arrow =
+    'flex h-7 w-7 items-center justify-center rounded bg-panel-light text-slate-200 hover:bg-panel-border';
+
+  return (
+    <div className="mt-4 border-t border-panel-border pt-3">
+      <p className="panel-heading mb-1 flex items-center gap-1.5">
+        <Move className="h-3.5 w-3.5" /> Tekstlabels plaatsen
+      </p>
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+        Verschuif een label met de pijlen, of sleep het rechtstreeks op het schema voor de exacte
+        plek.
+      </p>
+      <div className="space-y-2">
+        {specs.map(({ key, label }) => {
+          const off = labelOffset(node, key);
+          const moved = off.dx !== 0 || off.dy !== 0;
+          return (
+            <div key={key} className="rounded-md border border-panel-border bg-panel-dark/40 p-2">
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <span className="truncate text-xs font-medium text-slate-300">{label}</span>
+                <button
+                  className="flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-panel-light hover:text-slate-200 disabled:opacity-30"
+                  title="Terug naar standaardplaats"
+                  onClick={() => resetLabel(node.id, key)}
+                  disabled={!moved}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-1">
+                <button className={arrow} title="Naar links" onClick={() => nudgeLabel(node.id, key, -NUDGE, 0)}>
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <button className={arrow} title="Naar boven" onClick={() => nudgeLabel(node.id, key, 0, -NUDGE)}>
+                  <ArrowUp className="h-4 w-4" />
+                </button>
+                <button className={arrow} title="Naar onder" onClick={() => nudgeLabel(node.id, key, 0, NUDGE)}>
+                  <ArrowDown className="h-4 w-4" />
+                </button>
+                <button className={arrow} title="Naar rechts" onClick={() => nudgeLabel(node.id, key, NUDGE, 0)}>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const ProjectFields = () => {
   const doc = useSchemaStore((s) => s.doc);
   const setName = useSchemaStore((s) => s.setName);
@@ -127,6 +209,13 @@ export const PropsPanel = () => {
   const toggleRight = useSchemaStore((s) => s.toggleRightPanel);
 
   const node = selectedId ? findNode(doc.tree, selectedId) : null;
+
+  // De plaatsing (oriëntatie + kringnummer) bepaalt welke labels een component
+  // heeft; we leiden ze af uit dezelfde auto-layout als het canvas.
+  const placed = useMemo(() => {
+    if (!selectedId) return null;
+    return layoutTree(doc.tree).placed.find((p) => p.node.id === selectedId) ?? null;
+  }, [doc.tree, selectedId]);
 
   if (!node) {
     return (
@@ -188,6 +277,9 @@ export const PropsPanel = () => {
             onChange={(value) => updateProp(node.id, propDef.key, value)}
           />
         ))}
+        {placed ? (
+          <LabelControls node={node} specs={labelKeysFor(node, placed.orient, placed.kringnr)} />
+        ) : null}
       </div>
 
       {!isRoot ? (
