@@ -9,11 +9,28 @@ import type { PlanState } from './plan';
 
 export type PropValue = string | number | boolean;
 
+/**
+ * Fijn-positionering van één tekstlabel ten opzichte van zijn standaardplaats.
+ * `dx`/`dy` is een verschuiving in schema-eenheden (zelfde schaal als de
+ * tekening). De standaardplaats blijft ongewijzigd zolang er geen offset is,
+ * zodat oudere schema's er exact hetzelfde blijven uitzien.
+ */
+export interface LabelOffset {
+  dx: number;
+  dy: number;
+}
+
 export interface SchemaNode {
   id: string;
   kind: string;
   props: Record<string, PropValue>;
   children: SchemaNode[];
+  /**
+   * Optionele handmatige verschuivingen van tekstlabels, per label-sleutel
+   * (bv. 'kringnr', 'omschrijving', 'kabel', 'waarden', 'adres'). Ontbreekt in
+   * oudere bestanden; dan staan alle labels op hun standaardplaats.
+   */
+  labels?: Record<string, LabelOffset>;
 }
 
 export interface ProjectDoc {
@@ -81,7 +98,46 @@ export const cloneWithNewIds = (node: SchemaNode): SchemaNode => ({
   kind: node.kind,
   props: { ...node.props },
   children: node.children.map(cloneWithNewIds),
+  ...(node.labels ? { labels: structuredCloneLabels(node.labels) } : {}),
 });
+
+const structuredCloneLabels = (labels: Record<string, LabelOffset>): Record<string, LabelOffset> => {
+  const out: Record<string, LabelOffset> = {};
+  for (const [key, val] of Object.entries(labels)) out[key] = { dx: val.dx, dy: val.dy };
+  return out;
+};
+
+/** Geeft de huidige offset van een label terug (of {0,0} als die ontbreekt of
+ *  ongeldig is, bv. een handmatig bewerkt bestand met niet-numerieke waarden). */
+export const labelOffset = (node: SchemaNode, key: string): LabelOffset => {
+  const raw = node.labels?.[key];
+  if (!raw || !Number.isFinite(raw.dx) || !Number.isFinite(raw.dy)) return { dx: 0, dy: 0 };
+  return { dx: raw.dx, dy: raw.dy };
+};
+
+/**
+ * Immutable update van de offset van één tekstlabel. Een offset gelijk aan
+ * {0,0} wordt verwijderd, zodat een teruggezet label geen ruis achterlaat in
+ * het opgeslagen bestand.
+ */
+export const setNodeLabelOffset = (
+  node: SchemaNode,
+  key: string,
+  offset: LabelOffset
+): SchemaNode => {
+  const labels: Record<string, LabelOffset> = { ...(node.labels ?? {}) };
+  if (offset.dx === 0 && offset.dy === 0) {
+    delete labels[key];
+  } else {
+    labels[key] = { dx: offset.dx, dy: offset.dy };
+  }
+  if (Object.keys(labels).length === 0) {
+    if (!node.labels) return node;
+    const { labels: _omit, ...rest } = node;
+    return rest;
+  }
+  return { ...node, labels };
+};
 
 export const walk = (root: SchemaNode, fn: (node: SchemaNode, depth: number) => void) => {
   const visit = (node: SchemaNode, depth: number) => {
