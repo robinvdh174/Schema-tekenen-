@@ -309,7 +309,8 @@ const VBord = ({ placed }: { placed: PlacedNode }) => {
   const lineY = placed.y - 16;
   const geaard = p.geaard === true;
   const startX = placed.box.x + (geaard ? 20 : 4);
-  const naam = [str(p.naam) || 'Verdeelbord', str(p.lokaal)].filter(Boolean).join(' — ');
+  // De bordnaam wordt als afzonderlijk, versleepbaar label getekend (zie
+  // buildLabelSpecs); hier tekenen we enkel nog het optionele aardingssymbool.
   return (
     <>
       {geaard ? (
@@ -320,7 +321,6 @@ const VBord = ({ placed }: { placed: PlacedNode }) => {
           <L p={[startX - 13, lineY + 30, startX - 7, lineY + 30]} />
         </>
       ) : null}
-      <Text x={startX + 14} y={lineY + 6} text={naam} fontFamily={FONT} fontSize={10} fontStyle="bold" fill={INK} />
     </>
   );
 };

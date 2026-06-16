@@ -124,6 +124,33 @@ export const buildLabelSpecs = (
   const specs: LabelSpec[] = [];
   const p = node.props;
 
+  // ── Verdeelbord: de naam (+ plaats) als vrij versleepbaar label ──────────
+  // Vroeger zat dit vast in de bord-tekening; nu is het een gewoon label zodat
+  // je het kan verschuiven en aanklikken (selecteert het bord om te hernoemen).
+  if (node.kind === 'bord') {
+    const geaard = p.geaard === true;
+    const naam = [str(p.naam) || 'Verdeelbord', str(p.lokaal)].filter(Boolean).join(' — ');
+    // Node-lokale standaardplaats: identiek aan de vroegere tekst in VBord.
+    const boxXLocal = -8 - (geaard ? 50 : 10);
+    const nameX = boxXLocal + (geaard ? 20 : 4) + 14;
+    specs.push({
+      key: 'naam',
+      label: 'Naam bord',
+      content: (
+        <Text
+          x={nameX}
+          y={-10}
+          text={naam}
+          fontFamily={FONT}
+          fontSize={10}
+          fontStyle="bold"
+          fill={INK}
+        />
+      ),
+    });
+    return specs;
+  }
+
   // ── Kring/beveiliging op de stijglijn ────────────────────────────────────
   if (orient === 'v' && BREAKER_KINDS.has(node.kind)) {
     const selectief = p.selectief === true;
