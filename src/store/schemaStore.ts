@@ -193,6 +193,12 @@ interface SchemaState {
    * nieuwe node terug, of `null` wanneer dit type hier niet past.
    */
   insertSibling: (targetId: string, kind: string, props?: Record<string, PropValue>) => string | null;
+  /**
+   * Voegt een nieuw onderdeel achteraan bij als laatste kind van `parentId`
+   * (de "＋" op het einde): een verbruiker doorlussen of een nieuwe kring rechts
+   * op het bord. Geeft het id van de nieuwe node terug, of `null`.
+   */
+  insertChild: (parentId: string, kind: string, props?: Record<string, PropValue>) => string | null;
   removeSelected: () => void;
   duplicateSelected: () => void;
   moveSelected: (direction: -1 | 1) => void;
@@ -361,12 +367,29 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
       return child.id;
     },
 
+    insertChild: (parentId, kind, props) => {
+      const { doc } = get();
+      const parent = findNode(doc.tree, parentId);
+      if (!parent) return null;
+      if (!allowedChildKinds(parent.kind).some((def) => def.kind === kind)) return null;
+      const child = createNode(kind, { ...defaultProps(kind), ...props });
+      commit(
+        (d) => ({
+          ...d,
+          tree: mapNode(d.tree, parentId, (n) => ({ ...n, children: [...n.children, child] })),
+        }),
+        { selectedId: child.id, pendingInsert: null }
+      );
+      return child.id;
+    },
+
     removeSelected: () => {
       const { doc, selectedId } = get();
       if (!selectedId || selectedId === doc.tree.id) return;
       const parent = findParent(doc.tree, selectedId);
       commit((d) => ({ ...d, tree: removeNode(d.tree, selectedId) }), {
         selectedId: parent?.id ?? null,
+        pendingInsert: null,
       });
     },
 

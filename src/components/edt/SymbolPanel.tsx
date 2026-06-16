@@ -109,6 +109,7 @@ export const SymbolPanel = () => {
   const addComponent = useSchemaStore((s) => s.addComponent);
   const insertBefore = useSchemaStore((s) => s.insertBefore);
   const insertSibling = useSchemaStore((s) => s.insertSibling);
+  const insertChild = useSchemaStore((s) => s.insertChild);
   const pendingInsert = useSchemaStore((s) => s.pendingInsert);
   const setPendingInsert = useSchemaStore((s) => s.setPendingInsert);
   const toggleLeft = useSchemaStore((s) => s.toggleLeftPanel);
@@ -119,8 +120,11 @@ export const SymbolPanel = () => {
   const [insertMode, setInsertMode] = useState<InsertMode>('after');
 
   const selected = selectedId ? findNode(doc.tree, selectedId) : null;
-  // Onderdeel waar — via een aangeklikte "＋" op het schema — vóór ingevoegd wordt.
-  const pendingTarget = pendingInsert ? findNode(doc.tree, pendingInsert.beforeId) : null;
+  // Het onderdeel dat een aangeklikte "＋" als ankerpunt heeft: bij series/sibling
+  // het onderdeel waar vóór ingevoegd wordt, bij append de ouder waaronder bijkomt.
+  const pendingTarget = pendingInsert
+    ? findNode(doc.tree, pendingInsert.beforeId ?? pendingInsert.parentId ?? '')
+    : null;
   // "Ervóór invoegen" heeft enkel zin bij een geselecteerd onderdeel dat niet de
   // wortel is; anders valt alles terug op gewoon toevoegen.
   const canInsertBefore = !!selected && selected.id !== doc.tree.id;
@@ -130,6 +134,10 @@ export const SymbolPanel = () => {
   // af van de invoegplek; anders van de selectie (of de wortel).
   const primaryKinds = useMemo(() => {
     if (pendingInsert && pendingTarget) {
+      // append: het nieuwe onderdeel wordt rechtstreeks een kind van het doel.
+      if (pendingInsert.mode === 'append') {
+        return new Set(allowedChildKinds(pendingTarget.kind).map((def) => def.kind));
+      }
       const parent = findParent(doc.tree, pendingTarget.id);
       if (!parent) return new Set<string>();
       if (pendingInsert.mode === 'sibling') {
@@ -158,17 +166,21 @@ export const SymbolPanel = () => {
     (item: PaletteItem) => {
       // Op een aangeklikte "＋": rechtstreeks op die plek invoegen.
       if (pendingInsert) {
-        const id =
-          pendingInsert.mode === 'sibling'
-            ? insertSibling(pendingInsert.beforeId, item.kind, item.props)
-            : insertBefore(pendingInsert.beforeId, item.kind, item.props);
+        let id: string | null = null;
+        if (pendingInsert.mode === 'sibling' && pendingInsert.beforeId) {
+          id = insertSibling(pendingInsert.beforeId, item.kind, item.props);
+        } else if (pendingInsert.mode === 'append' && pendingInsert.parentId) {
+          id = insertChild(pendingInsert.parentId, item.kind, item.props);
+        } else if (pendingInsert.beforeId) {
+          id = insertBefore(pendingInsert.beforeId, item.kind, item.props);
+        }
         setWarning(
           id
             ? null
             : `"${item.label}" past niet op deze plek. ${
                 pendingInsert.mode === 'sibling'
                   ? 'Kies een beveiliging (automaat, differentieel …) om een nieuwe kring tussen te voegen.'
-                  : 'Kies een symbool dat in deze kring past (bv. een verbruiker tussen twee verbruikers).'
+                  : 'Kies een symbool dat hier past (bv. een verbruiker in deze kring).'
               }`
         );
         return;
@@ -189,7 +201,7 @@ export const SymbolPanel = () => {
           : `"${item.label}" past hier niet. Selecteer eerst een geschikt onderdeel op het schema (bv. een automaat of het verdeelbord).`
       );
     },
-    [addComponent, insertBefore, insertSibling, pendingInsert, effectiveMode, selectedId]
+    [addComponent, insertBefore, insertSibling, insertChild, pendingInsert, effectiveMode, selectedId]
   );
 
   const activeGroup = PALETTE_GROUPS.find((g) => g.id === activeGroupId) ?? PALETTE_GROUPS[0];
@@ -219,9 +231,11 @@ export const SymbolPanel = () => {
               <div className="flex items-start gap-1.5">
                 <PlusCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                 <p className="text-[11px] leading-tight text-slate-100">
-                  {pendingInsert.mode === 'sibling'
-                    ? 'Nieuwe kring invoegen vóór '
-                    : 'Invoegen vóór '}
+                  {pendingInsert.mode === 'append'
+                    ? 'Achteraan bijvoegen onder '
+                    : pendingInsert.mode === 'sibling'
+                      ? 'Nieuwe kring invoegen vóór '
+                      : 'Invoegen vóór '}
                   <span className="font-medium text-accent">
                     {pendingTarget ? nodeTitle(pendingTarget) : 'onderdeel'}
                   </span>

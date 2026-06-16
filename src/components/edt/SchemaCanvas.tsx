@@ -321,12 +321,13 @@ export const SchemaCanvas = () => {
                 waar een nieuw symbool moet komen. */}
             {layout.slots.map((slot) => (
               <InsertSlotMarker
-                key={`${slot.mode}-${slot.beforeId}`}
+                key={`${slot.mode}-${slot.beforeId ?? slot.parentId}`}
                 slot={slot}
                 active={
                   !!pendingInsert &&
+                  pendingInsert.mode === slot.mode &&
                   pendingInsert.beforeId === slot.beforeId &&
-                  pendingInsert.mode === slot.mode
+                  pendingInsert.parentId === slot.parentId
                 }
                 onPick={setPendingInsert}
               />

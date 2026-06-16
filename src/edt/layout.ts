@@ -1,5 +1,6 @@
 import type { SchemaNode } from './model';
 import { walk } from './model';
+import { allowedChildKinds } from './catalog';
 
 /**
  * Auto-layout van het eendraadschema volgens de klassieke Belgische
@@ -217,21 +218,26 @@ export interface SchemaLine {
 }
 
 /**
- * Een klikbare invoegplek op het schema: een "＋" dat tussen twee onderdelen
- * staat zodat je rechtstreeks op de tekening kan aanduiden waar een nieuw
- * symbool moet komen (i.p.v. eerst iets te selecteren).
+ * Een klikbare invoegplek op het schema: een "＋" tussen onderdelen zodat je
+ * rechtstreeks op de tekening kan aanduiden waar een nieuw symbool moet komen.
  *
  *  - `series`  → het nieuwe symbool komt ín de keten vóór `beforeId` (de
  *                bestaande verbruiker schuift door als kind), bv. tussen twee
  *                schakelaars of tussen A1 en A2.
  *  - `sibling` → het nieuwe onderdeel komt als nieuwe nevenkring vóór
  *                `beforeId` op hetzelfde bord, bv. een nieuwe kring tussen A en B.
+ *  - `append`  → het nieuwe onderdeel komt achteraan bij, als laatste kind van
+ *                `parentId` (een verbruiker doorlussen, of een nieuwe kring
+ *                rechts op het bord).
  */
 export interface InsertSlot {
   x: number;
   y: number;
-  beforeId: string;
-  mode: 'series' | 'sibling';
+  mode: 'series' | 'sibling' | 'append';
+  /** series/sibling: het onderdeel waar vóór ingevoegd wordt. */
+  beforeId?: string;
+  /** append: het onderdeel waaronder achteraan bijgevoegd wordt. */
+  parentId?: string;
 }
 
 export interface LayoutResult {
@@ -360,13 +366,16 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     parent: SchemaNode | null,
     x: number,
     y: number,
-    reachEnd = false
+    reachEnd = false,
+    isChainLink = false
   ): number => {
     const m = hMetrics(node);
     const chainW = m.adv;
 
-    // Invoegplek vóór deze verbruiker (tussen dit onderdeel en het vorige).
-    if (parent) slots.push({ x: x - 9, y, beforeId: node.id, mode: 'series' });
+    // Invoegplek tússen dit onderdeel en het vorige op dezelfde lijn (enkel bij
+    // een echte doorlus-schakel, niet vóór het eerste element van een rij). Het
+    // "＋" staat op het verbindingspunt, mooi gecentreerd tussen beide symbolen.
+    if (isChainLink) slots.push({ x, y, mode: 'series', beforeId: node.id });
 
     if (node.kind === 'aftakdoos' && node.children.length > 0) {
       // verticale aftakkingen vanaf de doos omhoog
@@ -391,12 +400,18 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
         // Elk kind behalve het laatste wordt gevolgd door een broer/zus → de
         // lijn moet doorlopen. Het laatste kind erft de eis van dit niveau.
         const isLast = i === kids.length - 1;
-        cx += placeChain(child, node, cx, y, isLast ? reachEnd : true);
+        cx += placeChain(child, node, cx, y, isLast ? reachEnd : true, true);
       });
-    } else if (reachEnd) {
-      // Bladknoop die nog een volgend onderdeel op de lijn heeft: trek de lijn
-      // door over de volledige breedte zodat de aansluiting sluit.
-      lines.push({ points: [x, y, cx, y] });
+    } else {
+      // Heeft het blad nog een volgend onderdeel op de lijn (een vertakking),
+      // trek de lijn dan door over de volledige breedte zodat de aansluiting
+      // sluit. Anders is dit het écht einde van de lijn → een "＋" om achteraan
+      // iets bij te doorlussen (op de plek waar het volgende onderdeel zou komen).
+      if (reachEnd) {
+        lines.push({ points: [x, y, cx, y] });
+      } else if (allowedChildKinds(node.kind).length > 0) {
+        slots.push({ x: cx, y, mode: 'append', parentId: node.id });
+      }
     }
     return cx - x;
   };
@@ -485,8 +500,19 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
       slots.push({
         x: (riserXs[i - 1] + riserXs[i]) / 2,
         y: lineY,
-        beforeId: node.children[i].id,
         mode: 'sibling',
+        beforeId: node.children[i].id,
+      });
+    }
+    // Eind-plus rechts op de bordlijn: een nieuwe kring achteraan bijvoegen.
+    if (riserXs.length > 0) {
+      const gap =
+        riserXs.length > 1 ? riserXs[riserXs.length - 1] - riserXs[riserXs.length - 2] : 36;
+      slots.push({
+        x: riserXs[riserXs.length - 1] + Math.min(Math.max(gap, 28), 60),
+        y: lineY,
+        mode: 'append',
+        parentId: node.id,
       });
     }
 
