@@ -275,27 +275,40 @@ export const SchemaCanvas = () => {
               ))
             )}
 
-            {/* Componentnummers (zelfde nummering als op het foto-plan) */}
-            <Group listening={false}>
-              {layout.placed.map((placed) => {
-                const entry = numbering.byId.get(placed.node.id);
-                if (!entry || entry.kring === VOEDING_GROUP || entry.kring === UNASSIGNED_GROUP) {
-                  return null;
-                }
-                return (
+            {/* Componentnummers (zelfde nummering als op het foto-plan) —
+                ook versleepbaar, net als de andere tekstlabels. */}
+            {layout.placed.map((placed) => {
+              const entry = numbering.byId.get(placed.node.id);
+              if (!entry || entry.kring === VOEDING_GROUP || entry.kring === UNASSIGNED_GROUP) {
+                return null;
+              }
+              const spec = {
+                key: 'nummer',
+                label: 'Componentnummer',
+                content: (
                   <Text
-                    key={`nr-${placed.node.id}`}
-                    x={placed.box.x + 2}
-                    y={placed.box.y - 4}
+                    x={placed.box.x + 2 - placed.x}
+                    y={placed.box.y - 4 - placed.y}
                     text={entry.label}
                     fontFamily={FONT}
                     fontSize={8}
                     fontStyle="bold"
                     fill={entry.color}
                   />
-                );
-              })}
-            </Group>
+                ),
+              };
+              return (
+                <DraggableLabel
+                  key={`nr-${placed.node.id}`}
+                  placed={placed}
+                  spec={spec}
+                  offset={labelOffset(placed.node, 'nummer')}
+                  selected={placed.node.id === selectedId}
+                  onSelect={select}
+                  onMove={setLabelOffset}
+                />
+              );
+            })}
 
             {/* Titelblok */}
             <Group listening={false}>

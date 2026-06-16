@@ -15,6 +15,7 @@ import { findNode, findParent, labelOffset, type SchemaNode } from '@/edt/model'
 import { kindDef, nodeTitle, type PropDef } from '@/edt/catalog';
 import { computeKringNumbers, layoutTree } from '@/edt/layout';
 import { labelKeysFor } from '@/edt/labels';
+import { computePlanNumbering, UNASSIGNED_GROUP, VOEDING_GROUP } from '@/edt/plan';
 import { useSchemaStore } from '@/store/schemaStore';
 
 /** Stapgrootte (in schema-eenheden) per klik op een richtingsknop. */
@@ -217,6 +218,14 @@ export const PropsPanel = () => {
     return layoutTree(doc.tree).placed.find((p) => p.node.id === selectedId) ?? null;
   }, [doc.tree, selectedId]);
 
+  // Heeft de geselecteerde component een (verplaatsbaar) componentnummer (bv.
+  // "B1", "C2")? Dezelfde nummering als op het foto-plan.
+  const hasComponentNumber = useMemo(() => {
+    if (!selectedId) return false;
+    const entry = computePlanNumbering(doc.tree).byId.get(selectedId);
+    return !!entry && entry.kring !== VOEDING_GROUP && entry.kring !== UNASSIGNED_GROUP;
+  }, [doc.tree, selectedId]);
+
   if (!node) {
     return (
       <aside className="panel flex w-72 shrink-0 flex-col overflow-y-auto border-l">
@@ -278,7 +287,13 @@ export const PropsPanel = () => {
           />
         ))}
         {placed ? (
-          <LabelControls node={node} specs={labelKeysFor(node, placed.orient, placed.kringnr)} />
+          <LabelControls
+            node={node}
+            specs={[
+              ...labelKeysFor(node, placed.orient, placed.kringnr),
+              ...(hasComponentNumber ? [{ key: 'nummer', label: 'Componentnummer' }] : []),
+            ]}
+          />
         ) : null}
       </div>
 
