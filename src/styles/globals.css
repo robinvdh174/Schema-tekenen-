@@ -112,7 +112,29 @@ select,
    iOS). */
 .konvajs-content,
 .konvajs-content canvas {
-  -webkit-user-select: none;
-  user-select: none;
+  -webkit-user-select: none !important;
+  user-select: none !important;
   -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Vangnet: mocht iOS tóch een selectie maken (het canvas wordt als afbeelding
+   "geselecteerd"), dan tonen we daar geen blauwe markering voor. In echte
+   invoervelden blijft de selectie wél zichtbaar zodat tekst bewerken normaal
+   werkt. */
+::selection {
+  background-color: transparent;
+}
+::-moz-selection {
+  background-color: transparent;
+}
+input::selection,
+textarea::selection,
+[contenteditable='true']::selection {
+  background-color: rgba(59, 130, 246, 0.4);
+}
+input::-moz-selection,
+textarea::-moz-selection,
+[contenteditable='true']::-moz-selection {
+  background-color: rgba(59, 130, 246, 0.4);
 }
