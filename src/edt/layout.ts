@@ -451,11 +451,23 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     const vm = measureVertical(node);
     const yTop = yBottom - own;
 
+    // Het klikvlak/selectiekader van een kring-beveiliging hugt enkel het
+    // zíchtbare symbool vlak bij de bordlijn. Vroeger was de box even hoog als
+    // `own` (tot 117px bij een kabel-kring), terwijl daarboven enkel een dunne
+    // kabellijn naar omhoog loopt. Dat maakte er een hoge, lege kolom van die
+    // tikken opving: je raakte de automaat ook als je in de leegte erboven
+    // tikte, en het selectiekader oogde veel te groot. De stapelafstand in de
+    // layout blijft op `own` (apart berekend), dus de tekening verschuift niet.
+    const selectief = node.props.selectief === true;
+    const boxH = KRING_KINDS.has(node.kind)
+      ? Math.min(own, 66 + (selectief ? 23 : 0))
+      : own;
+
     place(node, parent, 'v', x, yBottom, {
       x: x - 40,
-      y: yTop,
+      y: yBottom - boxH,
       w: 40 + Math.max(60, KRING_KINDS.has(node.kind) ? 15 + breakerLabelLines(node).length * 11 + 8 : 40),
-      h: own,
+      h: boxH,
     });
 
     if (node.children.length > 0) {
