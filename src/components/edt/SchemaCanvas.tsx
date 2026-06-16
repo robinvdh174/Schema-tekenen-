@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
+import { Circle, Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type Konva from 'konva';
 import { Maximize, ZoomIn, ZoomOut } from 'lucide-react';
-import { layoutTree } from '@/edt/layout';
+import { layoutTree, type InsertSlot } from '@/edt/layout';
 import { buildLabelSpecs } from '@/edt/labels';
 import { labelOffset } from '@/edt/model';
 import { computePlanNumbering, UNASSIGNED_GROUP, VOEDING_GROUP } from '@/edt/plan';
@@ -13,7 +13,53 @@ import { NodeGlyph } from './NodeGlyph';
 import { DraggableLabel } from './DraggableLabel';
 
 const INK = '#111827';
+const ACCENT = '#3b82f6';
 const FONT = 'Arial, Helvetica, sans-serif';
+
+/**
+ * Klikbare "＋" tussen twee onderdelen: hiermee duid je rechtstreeks op het
+ * schema aan waar een nieuw symbool moet komen. De actieve plek is ingevuld
+ * (accent), de overige staan subtiel. Naam "insertSlot" zodat de export ze
+ * tijdelijk kan verbergen.
+ */
+const InsertSlotMarker = ({
+  slot,
+  active,
+  onPick,
+}: {
+  slot: InsertSlot;
+  active: boolean;
+  onPick: (slot: InsertSlot) => void;
+}) => (
+  <Group
+    name="insertSlot"
+    x={slot.x}
+    y={slot.y}
+    opacity={active ? 1 : 0.55}
+    onMouseEnter={(e) => {
+      const stage = e.target.getStage();
+      if (stage) stage.container().style.cursor = 'pointer';
+    }}
+    onMouseLeave={(e) => {
+      const stage = e.target.getStage();
+      if (stage) stage.container().style.cursor = 'default';
+    }}
+    onClick={(e) => {
+      e.cancelBubble = true;
+      onPick(slot);
+    }}
+    onTap={(e) => {
+      e.cancelBubble = true;
+      onPick(slot);
+    }}
+  >
+    {/* Ruim trefveld zodat de plek ook ingezoomd makkelijk te tikken is. */}
+    <Circle radius={13} fill={ACCENT} opacity={0.001} />
+    <Circle radius={6.5} fill={active ? ACCENT : '#ffffff'} stroke={ACCENT} strokeWidth={1.4} />
+    <Line points={[-3.2, 0, 3.2, 0]} stroke={active ? '#ffffff' : ACCENT} strokeWidth={1.5} />
+    <Line points={[0, -3.2, 0, 3.2]} stroke={active ? '#ffffff' : ACCENT} strokeWidth={1.5} />
+  </Group>
+);
 const MARGIN = 70;
 const TITLE_W = 250;
 const TITLE_H = 58;
@@ -31,6 +77,8 @@ export const SchemaCanvas = () => {
   const selectedId = useSchemaStore((s) => s.selectedId);
   const select = useSchemaStore((s) => s.select);
   const setLabelOffset = useSchemaStore((s) => s.setLabelOffset);
+  const pendingInsert = useSchemaStore((s) => s.pendingInsert);
+  const setPendingInsert = useSchemaStore((s) => s.setPendingInsert);
 
   const layout = useMemo(() => layoutTree(doc.tree), [doc.tree]);
   const numbering = useMemo(() => computePlanNumbering(doc.tree), [doc.tree]);
@@ -107,8 +155,13 @@ export const SchemaCanvas = () => {
       stage.size({ width: paper.w, height: paper.h });
       stage.scale({ x: 1, y: 1 });
       stage.position({ x: -paper.x, y: -paper.y });
+      // Invoeg-"＋" zijn enkel een hulpmiddel tijdens het tekenen; niet mee
+      // exporteren naar de PDF/PNG.
+      const slotNodes = stage.find('.insertSlot');
+      slotNodes.forEach((n) => n.hide());
       const pixelRatio = Math.min(3, Math.max(1.5, 2600 / paper.w));
       const dataUrl = stage.toDataURL({ x: 0, y: 0, width: paper.w, height: paper.h, pixelRatio });
+      slotNodes.forEach((n) => n.show());
       stage.size({ width: prev.w, height: prev.h });
       stage.scale({ x: prev.scale, y: prev.scale });
       stage.position({ x: prev.x, y: prev.y });
@@ -207,10 +260,16 @@ export const SchemaCanvas = () => {
           draggable={!pinching}
           onWheel={handleWheel}
           onClick={(e) => {
-            if (e.target === e.target.getStage() || e.target.name() === 'paper') select(null);
+            if (e.target === e.target.getStage() || e.target.name() === 'paper') {
+              select(null);
+              if (pendingInsert) setPendingInsert(null);
+            }
           }}
           onTap={(e) => {
-            if (e.target === e.target.getStage() || e.target.name() === 'paper') select(null);
+            if (e.target === e.target.getStage() || e.target.name() === 'paper') {
+              select(null);
+              if (pendingInsert) setPendingInsert(null);
+            }
           }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -255,6 +314,21 @@ export const SchemaCanvas = () => {
                 placed={placed}
                 selected={placed.node.id === selectedId}
                 onSelect={select}
+              />
+            ))}
+
+            {/* Klikbare invoegplekken (＋) tussen onderdelen — duid hiermee aan
+                waar een nieuw symbool moet komen. */}
+            {layout.slots.map((slot) => (
+              <InsertSlotMarker
+                key={`${slot.mode}-${slot.beforeId}`}
+                slot={slot}
+                active={
+                  !!pendingInsert &&
+                  pendingInsert.beforeId === slot.beforeId &&
+                  pendingInsert.mode === slot.mode
+                }
+                onPick={setPendingInsert}
               />
             ))}
 

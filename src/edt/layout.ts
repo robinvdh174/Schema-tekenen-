@@ -216,9 +216,29 @@ export interface SchemaLine {
   heavy?: boolean;
 }
 
+/**
+ * Een klikbare invoegplek op het schema: een "＋" dat tussen twee onderdelen
+ * staat zodat je rechtstreeks op de tekening kan aanduiden waar een nieuw
+ * symbool moet komen (i.p.v. eerst iets te selecteren).
+ *
+ *  - `series`  → het nieuwe symbool komt ín de keten vóór `beforeId` (de
+ *                bestaande verbruiker schuift door als kind), bv. tussen twee
+ *                schakelaars of tussen A1 en A2.
+ *  - `sibling` → het nieuwe onderdeel komt als nieuwe nevenkring vóór
+ *                `beforeId` op hetzelfde bord, bv. een nieuwe kring tussen A en B.
+ */
+export interface InsertSlot {
+  x: number;
+  y: number;
+  beforeId: string;
+  mode: 'series' | 'sibling';
+}
+
 export interface LayoutResult {
   placed: PlacedNode[];
   lines: SchemaLine[];
+  /** Klikbare invoegplekken tussen onderdelen. */
+  slots: InsertSlot[];
   /** Begrenzing van de tekening. */
   minX: number;
   minY: number;
@@ -239,6 +259,7 @@ interface VSize {
 export const layoutTree = (root: SchemaNode): LayoutResult => {
   const placed: PlacedNode[] = [];
   const lines: SchemaLine[] = [];
+  const slots: InsertSlot[] = [];
   const kringNumbers = computeKringNumbers(root);
 
   /* --------------------------------------------------------- meten (pass 1) */
@@ -325,10 +346,27 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     placed.push({ node, parent, orient, x, y, box, kringnr: kringNumbers.get(node.id) ?? null });
   };
 
-  /** Horizontale ketting; entry op (x, y). Geeft eindbreedte terug. */
-  const placeChain = (node: SchemaNode, parent: SchemaNode | null, x: number, y: number): number => {
+  /**
+   * Horizontale ketting; entry op (x, y). Geeft eindbreedte terug.
+   *
+   * `reachEnd` = true betekent dat dit onderdeel gevolgd wordt door nóg een
+   * broer/zus op dezelfde lijn (een vertakking, bv. een schakelaar die twee
+   * lichtpunten voedt). Dan moet de doorverbindingslijn helemaal tot het einde
+   * van dit (deel)takje doorlopen, zodat het volgende element écht verbonden is
+   * en er geen los lijntje overblijft.
+   */
+  const placeChain = (
+    node: SchemaNode,
+    parent: SchemaNode | null,
+    x: number,
+    y: number,
+    reachEnd = false
+  ): number => {
     const m = hMetrics(node);
-    let chainW = m.adv;
+    const chainW = m.adv;
+
+    // Invoegplek vóór deze verbruiker (tussen dit onderdeel en het vorige).
+    if (parent) slots.push({ x: x - 9, y, beforeId: node.id, mode: 'series' });
 
     if (node.kind === 'aftakdoos' && node.children.length > 0) {
       // verticale aftakkingen vanaf de doos omhoog
@@ -336,19 +374,29 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
       const topY = placeRows(node.children, node, riserX, y - 22);
       lines.push({ points: [riserX, y - 15, riserX, topY] });
       place(node, parent, 'h', x, y, { x, y: y - m.up, w: m.adv, h: m.up + m.down });
+      // Sluit aan op de volgende broer/zus indien nodig.
+      if (reachEnd) lines.push({ points: [x, y, x + chainW, y] });
       return chainW;
     }
 
     place(node, parent, 'h', x, y, { x, y: y - m.up, w: m.adv, h: m.up + m.down });
     let cx = x + m.adv;
+    const kids = node.children;
     // Doorlopende horizontale verbindingslijn: overbrugt de ruimte tussen het
     // symbool en het volgende element in de ketting (bv. schakelaar → lichtpunt),
     // zodat er geen gaten vallen op de doorverbindingslijn.
-    if (node.children.length > 0) {
+    if (kids.length > 0) {
       lines.push({ points: [x, y, cx, y] });
-    }
-    for (const child of node.children) {
-      cx += placeChain(child, node, cx, y);
+      kids.forEach((child, i) => {
+        // Elk kind behalve het laatste wordt gevolgd door een broer/zus → de
+        // lijn moet doorlopen. Het laatste kind erft de eis van dit niveau.
+        const isLast = i === kids.length - 1;
+        cx += placeChain(child, node, cx, y, isLast ? reachEnd : true);
+      });
+    } else if (reachEnd) {
+      // Bladknoop die nog een volgend onderdeel op de lijn heeft: trek de lijn
+      // door over de volledige breedte zodat de aansluiting sluit.
+      lines.push({ points: [x, y, cx, y] });
     }
     return cx - x;
   };
@@ -421,13 +469,26 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     const startX = x - 8;
     let slotX = startX + 16;
     let endX = startX + bm.right;
+    const riserXs: number[] = [];
     for (const child of node.children) {
       const vm = measureVertical(child);
       const riserX = slotX + vm.left;
+      riserXs.push(riserX);
       placeVertical(child, node, riserX, lineY);
       slotX += vm.left + vm.right + SLOT_GAP;
     }
     endX = Math.max(endX, slotX);
+
+    // Invoegplekken tussen aangrenzende kringen (bv. een nieuwe kring tussen
+    // A en B): op de bordlijn, halverwege twee stijglijnen.
+    for (let i = 1; i < node.children.length; i += 1) {
+      slots.push({
+        x: (riserXs[i - 1] + riserXs[i]) / 2,
+        y: lineY,
+        beforeId: node.children[i].id,
+        mode: 'sibling',
+      });
+    }
 
     lines.push({ points: [startX - (node.props.geaard === true ? 30 : 6), lineY, endX, lineY], heavy: true });
 
@@ -531,5 +592,5 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     maxY = 100;
   }
 
-  return { placed, lines, minX, minY, maxX, maxY };
+  return { placed, lines, slots, minX, minY, maxX, maxY };
 };

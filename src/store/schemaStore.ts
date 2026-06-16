@@ -12,6 +12,7 @@ import {
   walk,
 } from '@/edt/model';
 import { allowedChildKinds, defaultProps, kindDef } from '@/edt/catalog';
+import type { InsertSlot } from '@/edt/layout';
 import type { PlanMarker, PlanPhoto, PlanState } from '@/edt/plan';
 import { emptyPlan } from '@/edt/plan';
 
@@ -151,6 +152,14 @@ interface SchemaState {
   pendingPlanNodeId: string | null;
   selectedMarkerId: string | null;
 
+  /**
+   * Aangeklikte invoegplek op het schema (de "＋" tussen twee onderdelen). Is
+   * deze gezet, dan plaatst de volgende symboolkeuze het nieuwe onderdeel
+   * exact op die plek i.p.v. onder de selectie.
+   */
+  pendingInsert: InsertSlot | null;
+  setPendingInsert: (slot: InsertSlot | null) => void;
+
   /** Zijpanelen in-/uitklappen zodat het tekenblad meer ruimte krijgt. */
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
@@ -177,6 +186,13 @@ interface SchemaState {
    * nieuwe node terug, of `null` wanneer dit type hier niet ingevoegd kan worden.
    */
   insertBefore: (targetId: string, kind: string, props?: Record<string, PropValue>) => string | null;
+  /**
+   * Voegt een nieuw onderdeel ín als nevenkring (broer/zus) vlak vóór
+   * `targetId` bij dezelfde ouder, zónder het doel te nesten. Zo plaats je bv.
+   * een nieuwe kring tussen A en B op het verdeelbord. Geeft het id van de
+   * nieuwe node terug, of `null` wanneer dit type hier niet past.
+   */
+  insertSibling: (targetId: string, kind: string, props?: Record<string, PropValue>) => string | null;
   removeSelected: () => void;
   duplicateSelected: () => void;
   moveSelected: (direction: -1 | 1) => void;
@@ -243,8 +259,11 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
     view: 'schema',
     pendingPlanNodeId: null,
     selectedMarkerId: null,
+    pendingInsert: null,
     leftPanelOpen: true,
     rightPanelOpen: true,
+
+    setPendingInsert: (pendingInsert) => set({ pendingInsert }),
 
     toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen })),
     toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
@@ -312,7 +331,32 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
             return { ...n, children };
           }),
         }),
-        { selectedId: child.id }
+        { selectedId: child.id, pendingInsert: null }
+      );
+      return child.id;
+    },
+
+    insertSibling: (targetId, kind, props) => {
+      const { doc } = get();
+      const target = findNode(doc.tree, targetId);
+      if (!target || targetId === doc.tree.id) return null;
+      const parent = findParent(doc.tree, targetId);
+      if (!parent) return null;
+      // De ouder (bv. het verdeelbord) moet dit type als kind aanvaarden.
+      if (!allowedChildKinds(parent.kind).some((def) => def.kind === kind)) return null;
+      const child = createNode(kind, { ...defaultProps(kind), ...props });
+      commit(
+        (d) => ({
+          ...d,
+          tree: mapNode(d.tree, parent.id, (n) => {
+            const idx = n.children.findIndex((c) => c.id === targetId);
+            if (idx < 0) return n;
+            const children = [...n.children];
+            children.splice(idx, 0, child);
+            return { ...n, children };
+          }),
+        }),
+        { selectedId: child.id, pendingInsert: null }
       );
       return child.id;
     },
@@ -412,7 +456,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
     },
 
     setView: (view) =>
-      set({ view, pendingPlanNodeId: null, selectedMarkerId: null }),
+      set({ view, pendingPlanNodeId: null, selectedMarkerId: null, pendingInsert: null }),
 
     setPendingPlanNode: (pendingPlanNodeId) =>
       set({ pendingPlanNodeId, selectedMarkerId: null }),
@@ -456,6 +500,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
         redoStack: [],
         pendingPlanNodeId: null,
         selectedMarkerId: null,
+        pendingInsert: null,
       });
     },
 
@@ -469,6 +514,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
         redoStack: [],
         pendingPlanNodeId: null,
         selectedMarkerId: null,
+        pendingInsert: null,
       });
     },
 
@@ -484,6 +530,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
         selectedId: null,
         pendingPlanNodeId: null,
         selectedMarkerId: null,
+        pendingInsert: null,
       });
     },
 
@@ -499,6 +546,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
         selectedId: null,
         pendingPlanNodeId: null,
         selectedMarkerId: null,
+        pendingInsert: null,
       });
     },
   };

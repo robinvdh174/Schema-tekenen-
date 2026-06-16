@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState } from 'react';
-import { PanelLeftClose, Search, X } from 'lucide-react';
+import { PanelLeftClose, PlusCircle, Search, X } from 'lucide-react';
 import {
   allowedChildKinds,
   kindDef,
@@ -8,7 +8,7 @@ import {
   type PaletteGroup,
   type PaletteItem,
 } from '@/edt/catalog';
-import { findNode } from '@/edt/model';
+import { findNode, findParent } from '@/edt/model';
 import { useSchemaStore } from '@/store/schemaStore';
 import { SymbolPreview } from './SymbolPreview';
 
@@ -108,6 +108,9 @@ export const SymbolPanel = () => {
   const selectedId = useSchemaStore((s) => s.selectedId);
   const addComponent = useSchemaStore((s) => s.addComponent);
   const insertBefore = useSchemaStore((s) => s.insertBefore);
+  const insertSibling = useSchemaStore((s) => s.insertSibling);
+  const pendingInsert = useSchemaStore((s) => s.pendingInsert);
+  const setPendingInsert = useSchemaStore((s) => s.setPendingInsert);
   const toggleLeft = useSchemaStore((s) => s.toggleLeftPanel);
 
   const [query, setQuery] = useState('');
@@ -116,16 +119,32 @@ export const SymbolPanel = () => {
   const [insertMode, setInsertMode] = useState<InsertMode>('after');
 
   const selected = selectedId ? findNode(doc.tree, selectedId) : null;
+  // Onderdeel waar — via een aangeklikte "＋" op het schema — vóór ingevoegd wordt.
+  const pendingTarget = pendingInsert ? findNode(doc.tree, pendingInsert.beforeId) : null;
   // "Ervóór invoegen" heeft enkel zin bij een geselecteerd onderdeel dat niet de
   // wortel is; anders valt alles terug op gewoon toevoegen.
   const canInsertBefore = !!selected && selected.id !== doc.tree.id;
   const effectiveMode: InsertMode = canInsertBefore ? insertMode : 'after';
 
-  // Welke types passen rechtstreeks onder de huidige selectie (of de wortel)?
+  // Welke types passen op de actieve plek? Bij een aangeklikte "＋" hangt dat
+  // af van de invoegplek; anders van de selectie (of de wortel).
   const primaryKinds = useMemo(() => {
+    if (pendingInsert && pendingTarget) {
+      const parent = findParent(doc.tree, pendingTarget.id);
+      if (!parent) return new Set<string>();
+      if (pendingInsert.mode === 'sibling') {
+        return new Set(allowedChildKinds(parent.kind).map((def) => def.kind));
+      }
+      // series: het nieuwe type moet het doel kunnen dragen én in de ouder passen.
+      return new Set(
+        allowedChildKinds(parent.kind)
+          .filter((def) => allowedChildKinds(def.kind).some((c) => c.kind === pendingTarget.kind))
+          .map((def) => def.kind)
+      );
+    }
     const host = selected ?? doc.tree;
     return new Set(allowedChildKinds(host.kind).map((def) => def.kind));
-  }, [selected, doc.tree]);
+  }, [pendingInsert, pendingTarget, selected, doc.tree]);
 
   const trimmed = query.trim().toLowerCase();
   const matches = useCallback(
@@ -137,6 +156,23 @@ export const SymbolPanel = () => {
 
   const handleAdd = useCallback(
     (item: PaletteItem) => {
+      // Op een aangeklikte "＋": rechtstreeks op die plek invoegen.
+      if (pendingInsert) {
+        const id =
+          pendingInsert.mode === 'sibling'
+            ? insertSibling(pendingInsert.beforeId, item.kind, item.props)
+            : insertBefore(pendingInsert.beforeId, item.kind, item.props);
+        setWarning(
+          id
+            ? null
+            : `"${item.label}" past niet op deze plek. ${
+                pendingInsert.mode === 'sibling'
+                  ? 'Kies een beveiliging (automaat, differentieel …) om een nieuwe kring tussen te voegen.'
+                  : 'Kies een symbool dat in deze kring past (bv. een verbruiker tussen twee verbruikers).'
+              }`
+        );
+        return;
+      }
       if (effectiveMode === 'before' && selectedId) {
         const id = insertBefore(selectedId, item.kind, item.props);
         setWarning(
@@ -153,7 +189,7 @@ export const SymbolPanel = () => {
           : `"${item.label}" past hier niet. Selecteer eerst een geschikt onderdeel op het schema (bv. een automaat of het verdeelbord).`
       );
     },
-    [addComponent, insertBefore, effectiveMode, selectedId]
+    [addComponent, insertBefore, insertSibling, pendingInsert, effectiveMode, selectedId]
   );
 
   const activeGroup = PALETTE_GROUPS.find((g) => g.id === activeGroupId) ?? PALETTE_GROUPS[0];
@@ -177,7 +213,32 @@ export const SymbolPanel = () => {
 
       {/* Waar komt een nieuw symbool terecht? */}
       <div className="shrink-0 border-b border-panel-border bg-panel-dark/40 px-3 py-2">
-        {selected ? (
+        {pendingInsert ? (
+          <div className="rounded-md border border-accent/50 bg-accent/15 px-2.5 py-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-1.5">
+                <PlusCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                <p className="text-[11px] leading-tight text-slate-100">
+                  {pendingInsert.mode === 'sibling'
+                    ? 'Nieuwe kring invoegen vóór '
+                    : 'Invoegen vóór '}
+                  <span className="font-medium text-accent">
+                    {pendingTarget ? nodeTitle(pendingTarget) : 'onderdeel'}
+                  </span>
+                  <br />
+                  <span className="text-slate-400">Kies hieronder een symbool.</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setPendingInsert(null)}
+                title="Invoegen annuleren"
+                className="-my-0.5 shrink-0 rounded p-0.5 text-slate-300 hover:bg-panel-light hover:text-white"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : selected ? (
           <>
             {/* Plaatsingsmodus: gewoon eronder, of net ervóór invoegen (tussen
                 twee bestaande onderdelen, bv. tussen A2 en A3). */}
@@ -218,8 +279,9 @@ export const SymbolPanel = () => {
           </>
         ) : (
           <p className="text-[11px] leading-tight text-slate-500">
-            Tip: selecteer eerst een onderdeel op het schema; nieuwe symbolen komen daar netjes
-            onder.
+            Tip: klik op een blauw <span className="font-medium text-accent">＋</span> tussen twee
+            onderdelen om daar iets tussen te voegen — of selecteer een onderdeel om er iets onder te
+            plaatsen.
           </p>
         )}
       </div>
