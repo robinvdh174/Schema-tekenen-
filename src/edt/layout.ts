@@ -482,17 +482,33 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     lines.push({ points: [x, yBottom, x, lineY] });
 
     const startX = x - 8;
+
+    // Eerst de stijglijn-posities en eindbreedte bepalen (zonder al te plaatsen),
+    // zodat we het bord-klikvlak kunnen registreren vóór zijn kinderen.
     let slotX = startX + 16;
-    let endX = startX + bm.right;
     const riserXs: number[] = [];
     for (const child of node.children) {
       const vm = measureVertical(child);
-      const riserX = slotX + vm.left;
-      riserXs.push(riserX);
-      placeVertical(child, node, riserX, lineY);
+      riserXs.push(slotX + vm.left);
       slotX += vm.left + vm.right + SLOT_GAP;
     }
-    endX = Math.max(endX, slotX);
+    const endX = Math.max(startX + bm.right, slotX);
+
+    // Het bord eerst registreren: zijn brede klikvlak (de volledige bordlijn)
+    // komt zo ácht­er de losse componenten te liggen. Klik je op een component,
+    // dan wint dat component i.p.v. dat per ongeluk het hele bord geselecteerd
+    // wordt.
+    place(node, parent, 'v', x, yBottom, {
+      x: startX - (node.props.geaard === true ? 50 : 10),
+      y: lineY - 6,
+      w: endX - startX + 30,
+      h: 30,
+    });
+
+    // Nu pas de kringen plaatsen (bovenop het bord-klikvlak).
+    node.children.forEach((child, i) => {
+      placeVertical(child, node, riserXs[i], lineY);
+    });
 
     // Invoegplekken tussen aangrenzende kringen (bv. een nieuwe kring tussen
     // A en B): op de bordlijn, halverwege twee stijglijnen.
@@ -517,13 +533,6 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     }
 
     lines.push({ points: [startX - (node.props.geaard === true ? 30 : 6), lineY, endX, lineY], heavy: true });
-
-    place(node, parent, 'v', x, yBottom, {
-      x: startX - (node.props.geaard === true ? 50 : 10),
-      y: lineY - 6,
-      w: endX - startX + 30,
-      h: 30,
-    });
   };
 
   /** Horizontale voedingsketen onderaan: aansluiting → kWh-teller die met een
