@@ -494,15 +494,18 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     }
     const endX = Math.max(startX + bm.right, slotX);
 
-    // Het bord eerst registreren: zijn brede klikvlak (de volledige bordlijn)
-    // komt zo ácht­er de losse componenten te liggen. Klik je op een component,
-    // dan wint dat component i.p.v. dat per ongeluk het hele bord geselecteerd
-    // wordt.
+    // Het bord eerst registreren: zijn brede klikvlak komt zo ácht­er de losse
+    // componenten te liggen. Bovendien is het klikvlak een dúnne strook die
+    // tegen de bordlijn zélf hangt (en grotendeels eronder), zodat het niet
+    // tot in het gebied van de kringen reikt. Vroeger was het een 30px hoge
+    // band die 6px bóven de lijn uitstak: tikte je dan net naast een klein
+    // kringsymbool, dan selecteerde je per ongeluk het hele (paginabrede) bord.
+    // Nu selecteer je het bord enkel door op/onder de dikke lijn te tikken.
     place(node, parent, 'v', x, yBottom, {
       x: startX - (node.props.geaard === true ? 50 : 10),
-      y: lineY - 6,
+      y: lineY - 2,
       w: endX - startX + 30,
-      h: 30,
+      h: 12,
     });
 
     // Nu pas de kringen plaatsen (bovenop het bord-klikvlak).

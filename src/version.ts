@@ -11,4 +11,4 @@
  *
  * Dit is de enige plek waar het versienummer staat; pas alleen deze waarde aan.
  */
-export const APP_VERSION = 'V15.4';
+export const APP_VERSION = 'V15.5';
