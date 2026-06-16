@@ -21,6 +21,24 @@ body,
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: none;
+  /* Belet dat iOS Safari bij het tikken het canvas (of pagina-tekst) als
+     "selectie" markeert — dat legde een blauwe waas over het hele blad zodra
+     je een component aantikte. Invoervelden mogen wél selecteerbaar blijven
+     (zie regel hieronder). */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Tekstinvoer blijft normaal selecteerbaar/bewerkbaar. */
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
 }
 
 /*
@@ -88,4 +106,13 @@ body,
 /* Konva stage: prevent default gestures so pinch-zoom works */
 .konvajs-content {
   touch-action: none !important;
+}
+
+/* Het canvas zelf mag nooit als geheel "geselecteerd" worden (blauwe waas op
+   iOS). */
+.konvajs-content,
+.konvajs-content canvas {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
