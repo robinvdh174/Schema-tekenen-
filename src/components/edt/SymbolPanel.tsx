@@ -166,6 +166,13 @@ export const SymbolPanel = () => {
     (item: PaletteItem) => {
       // Op een aangeklikte "＋": rechtstreeks op die plek invoegen.
       if (pendingInsert) {
+        // Is het ankeronderdeel intussen verdwenen (bv. verwijderd), dan bestaat
+        // de invoegplek niet meer: annuleer stil i.p.v. een misleidende
+        // waarschuwing te tonen.
+        if (!pendingTarget) {
+          setPendingInsert(null);
+          return;
+        }
         let id: string | null = null;
         if (pendingInsert.mode === 'sibling' && pendingInsert.beforeId) {
           id = insertSibling(pendingInsert.beforeId, item.kind, item.props);
@@ -201,7 +208,17 @@ export const SymbolPanel = () => {
           : `"${item.label}" past hier niet. Selecteer eerst een geschikt onderdeel op het schema (bv. een automaat of het verdeelbord).`
       );
     },
-    [addComponent, insertBefore, insertSibling, insertChild, pendingInsert, effectiveMode, selectedId]
+    [
+      addComponent,
+      insertBefore,
+      insertSibling,
+      insertChild,
+      pendingInsert,
+      pendingTarget,
+      setPendingInsert,
+      effectiveMode,
+      selectedId,
+    ]
   );
 
   const activeGroup = PALETTE_GROUPS.find((g) => g.id === activeGroupId) ?? PALETTE_GROUPS[0];

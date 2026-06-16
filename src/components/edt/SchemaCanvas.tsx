@@ -152,21 +152,27 @@ export const SchemaCanvas = () => {
         w: stage.width(),
         h: stage.height(),
       };
-      stage.size({ width: paper.w, height: paper.h });
-      stage.scale({ x: 1, y: 1 });
-      stage.position({ x: -paper.x, y: -paper.y });
       // Invoeg-"＋" zijn enkel een hulpmiddel tijdens het tekenen; niet mee
       // exporteren naar de PDF/PNG.
       const slotNodes = stage.find('.insertSlot');
-      slotNodes.forEach((n) => n.hide());
-      const pixelRatio = Math.min(3, Math.max(1.5, 2600 / paper.w));
-      const dataUrl = stage.toDataURL({ x: 0, y: 0, width: paper.w, height: paper.h, pixelRatio });
-      slotNodes.forEach((n) => n.show());
-      stage.size({ width: prev.w, height: prev.h });
-      stage.scale({ x: prev.scale, y: prev.scale });
-      stage.position({ x: prev.x, y: prev.y });
-      stage.batchDraw();
-      return { dataUrl, width: paper.w, height: paper.h };
+      // Faalt het exporteren (bv. te grote pixelRatio), dan moet de stage hoe dan
+      // ook hersteld worden — anders blijft het tekenblad op exportcoördinaten
+      // staan en zijn de "＋" verborgen. Daarom in een try/finally.
+      try {
+        stage.size({ width: paper.w, height: paper.h });
+        stage.scale({ x: 1, y: 1 });
+        stage.position({ x: -paper.x, y: -paper.y });
+        slotNodes.forEach((n) => n.hide());
+        const pixelRatio = Math.min(3, Math.max(1.5, 2600 / paper.w));
+        const dataUrl = stage.toDataURL({ x: 0, y: 0, width: paper.w, height: paper.h, pixelRatio });
+        return { dataUrl, width: paper.w, height: paper.h };
+      } finally {
+        slotNodes.forEach((n) => n.show());
+        stage.size({ width: prev.w, height: prev.h });
+        stage.scale({ x: prev.scale, y: prev.scale });
+        stage.position({ x: prev.x, y: prev.y });
+        stage.batchDraw();
+      }
     });
     return () => {
       registerExporter(null);
