@@ -137,6 +137,11 @@ export const verticalBlockHeight = (node: SchemaNode): number => {
 export const hMetrics = (node: SchemaNode): { adv: number; up: number; down: number } => {
   const p = node.props;
   switch (node.kind) {
+    // Voedingselementen op de horizontale voedingslijn (onderaan het schema).
+    case 'aansluiting':
+      return { adv: 74, up: 26, down: 16 };
+    case 'teller':
+      return { adv: 66, up: 24, down: 34 };
     case 'stopcontact': {
       const n = num(p.aantal);
       return { adv: 20 + n * 20 + 17, up: 32, down: 36 };
@@ -434,10 +439,70 @@ export const layoutTree = (root: SchemaNode): LayoutResult => {
     });
   };
 
+  /** Horizontale voedingsketen onderaan: aansluiting → kWh-teller die met een
+   *  horizontale lijn vertrekt, daarna stijgt de installatie verticaal op via
+   *  de differentieel(en) naar de horizontale bordlijn (zoals op papier). */
+  const placeFeeder = (feeder: SchemaNode[], riserRoot: SchemaNode) => {
+    // Ruimte tussen de teller en de opstijgende differentieel: hier takt de
+    // hoofdaarding naar onder af.
+    const GAP = 44;
+    const widths = feeder.map((n) => hMetrics(n).adv);
+    const total = widths.reduce((a, b) => a + b, 0);
+    // De keten eindigt net links van de stijglijn (x = -GAP); leg ze rechts→links.
+    const rightEnd = -GAP;
+    const leftX = rightEnd - total;
+
+    let cx = leftX;
+    feeder.forEach((node, i) => {
+      const m = hMetrics(node);
+      const parent = i === 0 ? null : feeder[i - 1];
+      place(node, parent, 'h', cx, 0, { x: cx, y: -m.up, w: m.adv, h: m.up + m.down });
+      cx += widths[i];
+    });
+
+    // Doorlopende horizontale voedingslijn tot aan de stijglijn (x = 0).
+    lines.push({ points: [leftX, 0, 0, 0] });
+
+    // Hoofdaarding: aftakking naar onder, halverwege de ruimte vóór de stijglijn.
+    const ex = rightEnd / 2;
+    lines.push({ points: [ex, 0, ex, 16] });
+    lines.push({ points: [ex - 9, 16, ex + 9, 16], heavy: false });
+    lines.push({ points: [ex - 6, 20, ex + 6, 20] });
+    lines.push({ points: [ex - 3, 24, ex + 3, 24] });
+
+    // De installatie stijgt verticaal op vanaf (0, 0).
+    const riserParent = feeder[feeder.length - 1] ?? null;
+    if (riserRoot.kind === 'bord') {
+      placeBord(riserRoot, riserParent, 0, 0);
+    } else {
+      placeVertical(riserRoot, riserParent, 0, 0);
+    }
+  };
+
   /* ------------------------------------------------------------- startpunt */
 
-  // De wortel (aansluiting) staat onderaan; alles stijgt vanaf (0, 0).
-  placeVertical(root, null, 0, 0);
+  // Probeer de horizontale voedingslayout (aansluiting/teller onderaan, dan
+  // verticaal omhoog). Lukt dat niet (onverwachte boomvorm), val terug op de
+  // klassieke volledig-verticale opbouw zodat niets stuk gaat.
+  const FEEDER_KINDS = new Set(['aansluiting', 'teller']);
+  const feeder: SchemaNode[] = [];
+  let cur: SchemaNode | null = root;
+  while (cur && FEEDER_KINDS.has(cur.kind) && cur.children.length === 1) {
+    feeder.push(cur);
+    cur = cur.children[0];
+  }
+  const riserRoot = cur;
+  const canFeeder =
+    feeder.length >= 1 &&
+    !!riserRoot &&
+    (VERTICAL_KINDS.has(riserRoot.kind) || riserRoot.kind === 'bord');
+
+  if (canFeeder && riserRoot) {
+    placeFeeder(feeder, riserRoot);
+  } else {
+    // De wortel staat onderaan; alles stijgt vanaf (0, 0).
+    placeVertical(root, null, 0, 0);
+  }
 
   /* ------------------------------------------------------------ begrenzing */
 

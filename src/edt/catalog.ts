@@ -124,6 +124,10 @@ const CURVES = ['B', 'C', 'D'];
 const DIFF_MA = ['10mA', '30mA', '100mA', '300mA', '500mA'];
 const DIFF_TYPE = ['A', 'AC', 'B', 'F'];
 
+/** Plaatsingswijze van de kringkabel (AREI-aanduiding op de leiding):
+ *  opbouw = E, inbouw = omgekeerde E, in buis = ○, ondergronds = ●. */
+export const PLAATSING_OPTIES = ['Inbouw', 'Opbouw', 'In buis', 'Ondergronds'];
+
 export const SCHAKELAAR_TYPES = [
   'Enkelpolig',
   'Tweepolig',
@@ -208,6 +212,17 @@ const cableProp = (label = 'Kabel kring', def = ''): PropDef => ({
   default: def,
   hint: 'Kies een kabeltype of typ zelf',
   suggestions: CABLE_SUGGESTIONS,
+});
+
+/** Plaatsingswijze-veld: bepaalt het symbool op de kringleiding (i.p.v. het
+ *  vroegere aantal-geleiders-streepje). */
+const plaatsingProp = (): PropDef => ({
+  key: 'plaatsing',
+  label: 'Plaatsing leiding',
+  type: 'select',
+  options: PLAATSING_OPTIES,
+  default: 'Inbouw',
+  hint: 'Opbouw = E, inbouw = ⌐E, in buis = ○, ondergronds = ●',
 });
 
 /** Kringnummerveld met voorgestelde nummers/letters (bv. B → F). */
@@ -295,6 +310,7 @@ export const CATALOG: KindDef[] = [
       { key: 'ampere', label: 'Stroomsterkte', type: 'select', options: AMPERE, default: '16A' },
       { key: 'curve', label: 'Curve', type: 'select', options: CURVES, default: 'C' },
       cableProp('Kabel kring', 'XVB 3G2,5'),
+      plaatsingProp(),
       kringnrProp(),
       labelProp('Bv. stopcontacten keuken'),
     ],
@@ -312,6 +328,7 @@ export const CATALOG: KindDef[] = [
       { key: 'difftype', label: 'Type', type: 'select', options: DIFF_TYPE, default: 'A' },
       { key: 'selectief', label: 'Selectief (S)', type: 'boolean', default: false },
       cableProp('Kabel', ''),
+      plaatsingProp(),
       kringnrProp(),
       labelProp('Bv. natte kringen'),
     ],
@@ -330,6 +347,7 @@ export const CATALOG: KindDef[] = [
       { key: 'difftype', label: 'Type', type: 'select', options: DIFF_TYPE, default: 'A' },
       { key: 'selectief', label: 'Selectief (S)', type: 'boolean', default: false },
       cableProp('Kabel kring', 'XVB 3G2,5'),
+      plaatsingProp(),
       kringnrProp(),
       labelProp(),
     ],
@@ -344,6 +362,7 @@ export const CATALOG: KindDef[] = [
       { key: 'polen', label: 'Polen', type: 'select', options: POLEN, default: '2P' },
       { key: 'ampere', label: 'Stroomsterkte', type: 'select', options: AMPERE, default: '10A' },
       cableProp('Kabel kring', ''),
+      plaatsingProp(),
       kringnrProp(),
       labelProp(),
     ],
@@ -358,6 +377,7 @@ export const CATALOG: KindDef[] = [
       { key: 'polen', label: 'Polen', type: 'select', options: POLEN, default: '4P' },
       { key: 'ampere', label: 'Stroomsterkte', type: 'select', options: AMPERE, default: '63A' },
       cableProp('Kabel', ''),
+      plaatsingProp(),
       labelProp('Bv. hoofdschakelaar'),
     ],
   },

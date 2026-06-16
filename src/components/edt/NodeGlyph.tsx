@@ -26,38 +26,33 @@ export const FONT = 'Arial, Helvetica, sans-serif';
 const str = (v: unknown) => String(v ?? '');
 const num = (v: unknown, d = 1) => Math.max(1, Math.round(Number(v ?? d) || d));
 
-/** Aantal geleiders uit een kabeltype afleiden, bv. "XVB 3G2,5" → 3,
- *  "EXVB 4G10" → 4, "XVB 2x1,5" → 2, "VOB 1,5" → 1 (eenaderig). */
-const conductorCount = (kabel: string): number => {
-  const m = kabel.match(/(\d+)\s*[GgxX]/);
-  return m ? Math.max(1, parseInt(m[1], 10)) : 1;
-};
-
 /* ------------------------------------------------------------------ helpers */
 
 const L = ({ p, w = SW }: { p: number[]; w?: number }) => <Line points={p} stroke={INK} strokeWidth={w} />;
 
-/** AREI-aanduiding van het aantal geleiders op een (verticale) leiding:
- *  schuine streepjes (≤4 geleiders) of één streep + getal (≥5), zoals in het
- *  VOLTA-document ("///" resp. "/5"). Getekend rond punt (x, y) op de lijn. */
-const ConductorTicks = ({ x, y, n }: { x: number; y: number; n: number }) => {
-  if (n <= 1) {
-    return <L p={[x - 5, y + 4, x + 5, y - 4]} />;
+/** AREI-aanduiding van de plaatsingswijze van de leiding, getekend op de
+ *  (verticale) kringleiding rond punt (x, y). Vervangt de vroegere schuine
+ *  geleider-streepjes:
+ *   - Opbouw (op de muur)  → "E": drie tandjes naar rechts;
+ *   - Inbouw (in de muur)  → omgekeerde "E": drie tandjes naar links;
+ *   - In buis              → klein open cirkeltje op de leiding;
+ *   - Ondergronds          → klein gevuld cirkeltje op de leiding.
+ *  De leiding zelf vormt de rug van de "E"; we tekenen enkel de tandjes. */
+const PlacementSymbol = ({ x, y, plaatsing }: { x: number; y: number; plaatsing: string }) => {
+  if (plaatsing === 'In buis') {
+    return <Circle x={x} y={y} radius={4} stroke={INK} strokeWidth={SW} fill="#ffffff" />;
   }
-  if (n >= 5) {
-    return (
-      <>
-        <L p={[x - 5, y + 4, x + 5, y - 4]} />
-        <Text x={x + 6} y={y - 10} text={String(n)} fontFamily={FONT} fontSize={9} fill={INK} />
-      </>
-    );
+  if (plaatsing === 'Ondergronds') {
+    return <Circle x={x} y={y} radius={3.5} fill={INK} />;
   }
+  // Opbouw = tandjes naar rechts, inbouw (standaard) = naar links.
+  const dir = plaatsing === 'Opbouw' ? 1 : -1;
+  const ys = [y - 5, y, y + 5];
   return (
     <>
-      {Array.from({ length: n }, (_, i) => {
-        const yy = y - ((n - 1) * 4) / 2 + i * 4;
-        return <L key={i} p={[x - 5, yy + 3, x + 5, yy - 3]} />;
-      })}
+      {ys.map((yy, i) => (
+        <L key={i} p={[x, yy, x + dir * 6, yy]} />
+      ))}
     </>
   );
 };
@@ -266,11 +261,15 @@ const VBeveiliging = ({ placed }: { placed: PlacedNode }) => {
         </>
       ) : null}
 
-      {/* kabel naar boven met AREI-geleideraanduiding (het kabeltype zelf is
+      {/* kabel naar boven met AREI-plaatsingsaanduiding (het kabeltype zelf is
           een versleepbaar label) */}
       <L p={[0, contactTop - (selectief ? 23 : 0), 0, -h]} w={SW} />
       {kabel ? (
-        <ConductorTicks x={0} y={contactTop - (selectief ? 23 : 0) - 12} n={conductorCount(kabel)} />
+        <PlacementSymbol
+          x={0}
+          y={contactTop - (selectief ? 23 : 0) - 12}
+          plaatsing={str(p.plaatsing) || 'Inbouw'}
+        />
       ) : null}
     </>
   );
@@ -827,6 +826,37 @@ const HToestel = ({ placed }: { placed: PlacedNode }) => {
   return <>{body}</>;
 };
 
+/** Horizontale netaansluiting: pijl van de netbeheerder die de installatie
+ *  binnenkomt op de horizontale voedingslijn. */
+const HAansluiting = ({ placed }: { placed: PlacedNode }) => {
+  const p = placed.node.props;
+  return (
+    <>
+      {/* pijl van de netbeheerder, wijst naar rechts de installatie in */}
+      <L p={[0, -5, 9, 0]} w={SW} />
+      <L p={[0, 5, 9, 0]} w={SW} />
+      <Text x={3} y={-22} text={str(p.net)} fontFamily={FONT} fontSize={9} fontStyle="bold" fill={INK} />
+      {str(p.kabel) ? (
+        <Text x={3} y={7} text={str(p.kabel)} fontFamily={FONT} fontSize={8.5} fontStyle="italic" fill="#475569" />
+      ) : null}
+    </>
+  );
+};
+
+/** Horizontale kWh-teller: de meterkast zit op de horizontale voedingslijn,
+ *  die er links binnenkomt en rechts naar de stijglijn vertrekt. */
+const HTeller = ({ placed }: { placed: PlacedNode }) => {
+  const p = placed.node.props;
+  return (
+    <>
+      <Rect x={12} y={-20} width={40} height={40} stroke={INK} strokeWidth={SW} fill="#ffffff" />
+      <L p={[12, -6, 52, -6]} w={SW} />
+      <Text x={12} y={-3} width={40} align="center" text="kWh" fontFamily={FONT} fontSize={11} fontStyle="bold" fill={INK} />
+      <Text x={2} y={24} width={60} align="center" text={str(p.type)} fontFamily={FONT} fontSize={8.5} fill="#475569" />
+    </>
+  );
+};
+
 const HAansluitpunt = (_: { placed: PlacedNode }) => (
   <>
     <L p={[0, 0, 20, 0]} w={SW} />
@@ -1070,6 +1100,10 @@ export const glyphFor = (placed: PlacedNode): JSX.Element => {
     }
   }
   switch (node.kind) {
+    case 'aansluiting':
+      return <HAansluiting placed={placed} />;
+    case 'teller':
+      return <HTeller placed={placed} />;
     case 'stopcontact':
       return <HStopcontact placed={placed} />;
     case 'lichtpunt':

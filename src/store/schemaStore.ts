@@ -59,7 +59,7 @@ export const buildDefaultTree = (): SchemaNode =>
         'differentieel',
         { ...defaultProps('differentieel'), gevoeligheid: '300mA', ampere: '40A', label: 'Hoofddifferentieel' },
         [
-          createNode('bord', { ...defaultProps('bord'), naam: 'Hoofdbord', geaard: true }, [
+          createNode('bord', { ...defaultProps('bord'), naam: 'Hoofdbord' }, [
             createNode(
               'automaat',
               { ...defaultProps('automaat'), ampere: '16A', label: 'Stopcontacten keuken' },
