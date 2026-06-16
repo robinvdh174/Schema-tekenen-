@@ -101,17 +101,25 @@ const CategoryButton = memo(
 );
 CategoryButton.displayName = 'CategoryButton';
 
+type InsertMode = 'after' | 'before';
+
 export const SymbolPanel = () => {
   const doc = useSchemaStore((s) => s.doc);
   const selectedId = useSchemaStore((s) => s.selectedId);
   const addComponent = useSchemaStore((s) => s.addComponent);
+  const insertBefore = useSchemaStore((s) => s.insertBefore);
   const toggleLeft = useSchemaStore((s) => s.toggleLeftPanel);
 
   const [query, setQuery] = useState('');
   const [activeGroupId, setActiveGroupId] = useState<string>(PALETTE_GROUPS[0]?.id ?? '');
   const [warning, setWarning] = useState<string | null>(null);
+  const [insertMode, setInsertMode] = useState<InsertMode>('after');
 
   const selected = selectedId ? findNode(doc.tree, selectedId) : null;
+  // "Ervóór invoegen" heeft enkel zin bij een geselecteerd onderdeel dat niet de
+  // wortel is; anders valt alles terug op gewoon toevoegen.
+  const canInsertBefore = !!selected && selected.id !== doc.tree.id;
+  const effectiveMode: InsertMode = canInsertBefore ? insertMode : 'after';
 
   // Welke types passen rechtstreeks onder de huidige selectie (of de wortel)?
   const primaryKinds = useMemo(() => {
@@ -129,6 +137,15 @@ export const SymbolPanel = () => {
 
   const handleAdd = useCallback(
     (item: PaletteItem) => {
+      if (effectiveMode === 'before' && selectedId) {
+        const id = insertBefore(selectedId, item.kind, item.props);
+        setWarning(
+          id
+            ? null
+            : `"${item.label}" kan hier niet vóór het geselecteerde onderdeel ingevoegd worden. Kies een symbool dat in dezelfde kring past (bv. een verbruiker vóór een andere verbruiker).`
+        );
+        return;
+      }
       const id = addComponent(item.kind, item.props);
       setWarning(
         id
@@ -136,7 +153,7 @@ export const SymbolPanel = () => {
           : `"${item.label}" past hier niet. Selecteer eerst een geschikt onderdeel op het schema (bv. een automaat of het verdeelbord).`
       );
     },
-    [addComponent]
+    [addComponent, insertBefore, effectiveMode, selectedId]
   );
 
   const activeGroup = PALETTE_GROUPS.find((g) => g.id === activeGroupId) ?? PALETTE_GROUPS[0];
@@ -161,11 +178,44 @@ export const SymbolPanel = () => {
       {/* Waar komt een nieuw symbool terecht? */}
       <div className="shrink-0 border-b border-panel-border bg-panel-dark/40 px-3 py-2">
         {selected ? (
-          <p className="text-[11px] leading-tight text-slate-400">
-            Toevoegen onder{' '}
-            <span className="font-medium text-accent">{nodeTitle(selected)}</span>{' '}
-            <span className="text-slate-500">({kindDef(selected.kind).label})</span>
-          </p>
+          <>
+            {/* Plaatsingsmodus: gewoon eronder, of net ervóór invoegen (tussen
+                twee bestaande onderdelen, bv. tussen A2 en A3). */}
+            {canInsertBefore ? (
+              <div className="mb-2 grid grid-cols-2 gap-1 rounded-md bg-panel-dark p-0.5">
+                {(
+                  [
+                    ['after', 'Eronder'],
+                    ['before', 'Ervóór invoegen'],
+                  ] as [InsertMode, string][]
+                ).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    onClick={() => setInsertMode(mode)}
+                    className={
+                      'rounded px-2 py-1 text-[11px] font-medium transition-colors ' +
+                      (effectiveMode === mode
+                        ? 'bg-accent text-white'
+                        : 'text-slate-300 hover:bg-panel-light')
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <p className="text-[11px] leading-tight text-slate-400">
+              {effectiveMode === 'before' ? 'Invoegen vóór' : 'Toevoegen onder'}{' '}
+              <span className="font-medium text-accent">{nodeTitle(selected)}</span>{' '}
+              <span className="text-slate-500">({kindDef(selected.kind).label})</span>
+            </p>
+            {effectiveMode === 'before' ? (
+              <p className="mt-1 text-[11px] leading-tight text-slate-500">
+                Het nieuwe symbool komt tússen dit onderdeel en het vorige; de nummering schuift
+                automatisch mee op.
+              </p>
+            ) : null}
+          </>
         ) : (
           <p className="text-[11px] leading-tight text-slate-500">
             Tip: selecteer eerst een onderdeel op het schema; nieuwe symbolen komen daar netjes

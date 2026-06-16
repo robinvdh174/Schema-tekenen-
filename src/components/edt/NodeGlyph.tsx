@@ -1122,15 +1122,15 @@ export const NodeGlyph = ({ placed, selected, onSelect }: GlyphProps) => {
     <>
       {selected ? (
         <Rect
-          x={box.x - 3}
-          y={box.y - 3}
-          width={box.w + 6}
-          height={box.h + 6}
-          fill="rgba(37, 99, 235, 0.08)"
+          x={box.x - 2}
+          y={box.y - 2}
+          width={box.w + 4}
+          height={box.h + 4}
           stroke={SELECT}
-          strokeWidth={1.25}
-          dash={[5, 4]}
-          cornerRadius={5}
+          strokeWidth={0.75}
+          dash={[3, 3]}
+          cornerRadius={3}
+          opacity={0.7}
           listening={false}
         />
       ) : null}

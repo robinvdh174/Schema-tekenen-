@@ -169,6 +169,14 @@ interface SchemaState {
    * het type hier niet geplaatst kan worden.
    */
   addComponent: (kind: string, props?: Record<string, PropValue>) => string | null;
+  /**
+   * Voegt een nieuw symbool ín vóór `targetId`: de nieuwe node neemt de plaats
+   * van het doel in bij zijn ouder, en het doel (met alles wat eronder hangt)
+   * schuift door als kind van de nieuwe node. Zo kan je bv. tussen A2 en A3 nog
+   * iets tekenen; de automatische nummering schuift mee op. Geeft het id van de
+   * nieuwe node terug, of `null` wanneer dit type hier niet ingevoegd kan worden.
+   */
+  insertBefore: (targetId: string, kind: string, props?: Record<string, PropValue>) => string | null;
   removeSelected: () => void;
   duplicateSelected: () => void;
   moveSelected: (direction: -1 | 1) => void;
@@ -270,6 +278,39 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
         (d) => ({
           ...d,
           tree: mapNode(d.tree, parent.id, (n) => ({ ...n, children: [...n.children, child] })),
+        }),
+        { selectedId: child.id }
+      );
+      return child.id;
+    },
+
+    insertBefore: (targetId, kind, props) => {
+      const { doc } = get();
+      const target = findNode(doc.tree, targetId);
+      if (!target || targetId === doc.tree.id) return null;
+      const parent = findParent(doc.tree, targetId);
+      if (!parent) return null;
+      // De nieuwe node moet het doel als kind kunnen dragen (zo blijft de kring
+      // doorgelust i.p.v. te vertakken), én de ouder moet de nieuwe node lusten.
+      const newAcceptsTarget = allowedChildKinds(kind).some(
+        (def) => def.kind === target.kind
+      );
+      const parentAcceptsNew = allowedChildKinds(parent.kind).some(
+        (def) => def.kind === kind
+      );
+      if (!newAcceptsTarget || !parentAcceptsNew) return null;
+      const child = createNode(kind, { ...defaultProps(kind), ...props });
+      commit(
+        (d) => ({
+          ...d,
+          tree: mapNode(d.tree, parent.id, (n) => {
+            const idx = n.children.findIndex((c) => c.id === targetId);
+            if (idx < 0) return n;
+            const moved = n.children[idx];
+            const children = [...n.children];
+            children[idx] = { ...child, children: [moved] };
+            return { ...n, children };
+          }),
         }),
         { selectedId: child.id }
       );
