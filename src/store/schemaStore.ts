@@ -218,6 +218,10 @@ interface SchemaState {
   updatePlanPhoto: (updates: Partial<PlanPhoto>) => void;
   addPlanMarker: (marker: PlanMarker) => void;
   movePlanMarker: (id: string, position: { x: number; y: number }) => void;
+  /** Draait het symbool van een markering naar een absolute hoek (graden). */
+  rotatePlanMarker: (id: string, rotation: number) => void;
+  /** Schaalt het symbool van een markering (1 = standaardgrootte). */
+  scalePlanMarker: (id: string, scale: number) => void;
   removePlanMarker: (id: string) => void;
 
   newProject: () => void;
@@ -506,6 +510,27 @@ export const useSchemaStore = create<SchemaState>((set, get) => {
         ...plan,
         markers: plan.markers.map((m) => (m.id === id ? { ...m, position } : m)),
       })),
+
+    rotatePlanMarker: (id, rotation) => {
+      // Houd de hoek in [0, 360) zodat het opgeslagen getal netjes blijft.
+      const norm = ((rotation % 360) + 360) % 360;
+      commitPlan((plan) => ({
+        ...plan,
+        markers: plan.markers.map((m) =>
+          m.id === id ? { ...m, rotation: norm === 0 ? undefined : norm } : m
+        ),
+      }));
+    },
+
+    scalePlanMarker: (id, scale) => {
+      const clamped = Math.min(4, Math.max(0.4, scale));
+      commitPlan((plan) => ({
+        ...plan,
+        markers: plan.markers.map((m) =>
+          m.id === id ? { ...m, scale: clamped === 1 ? undefined : clamped } : m
+        ),
+      }));
+    },
 
     removePlanMarker: (id) =>
       commitPlan(

@@ -25,6 +25,10 @@ export interface PlanMarker {
   /** Id van de gekoppelde node in de schemaboom. */
   nodeId: string;
   position: { x: number; y: number };
+  /** Draaiing van het symbool in graden (ontbreekt = 0, niet gedraaid). */
+  rotation?: number;
+  /** Grootte t.o.v. de standaard (ontbreekt = 1). Bv. 1.5 = 50% groter. */
+  scale?: number;
 }
 
 export interface PlanState {

@@ -2,12 +2,14 @@ import { useMemo } from 'react';
 import { Info, MapPin, PanelLeftClose } from 'lucide-react';
 import { computePlanNumbering, emptyPlan } from '@/edt/plan';
 import type { PlanEntry } from '@/edt/plan';
+import { walk, type SchemaNode } from '@/edt/model';
 import { useSchemaStore } from '@/store/schemaStore';
+import { SymbolPreview } from './SymbolPreview';
 
 /**
- * Lijst van alle componenten uit het eendraadschema, gegroepeerd per kring en
- * met hetzelfde nummer als op het schema. Klik op een component en daarna op
- * de foto om een markering te plaatsen.
+ * Lijst van alle componenten/symbolen uit het eendraadschema, gegroepeerd per
+ * kring en met hetzelfde nummer als op het schema. Klik op een symbool en
+ * daarna op het plan om het op het situatieplan te plaatsen.
  */
 export const PlanPanel = () => {
   const tree = useSchemaStore((s) => s.doc.tree);
@@ -18,6 +20,11 @@ export const PlanPanel = () => {
   const hasPhoto = Boolean(plan?.photo);
 
   const numbering = useMemo(() => computePlanNumbering(tree), [tree]);
+  const nodeById = useMemo(() => {
+    const map = new Map<string, SchemaNode>();
+    walk(tree, (node) => map.set(node.id, node));
+    return map;
+  }, [tree]);
   const markers = (plan ?? emptyPlan()).markers;
   const markerCount = useMemo(() => {
     const counts = new Map<string, number>();
@@ -31,15 +38,15 @@ export const PlanPanel = () => {
     <aside className="panel flex w-72 shrink-0 flex-col border-r">
       <div className="panel-section shrink-0">
         <div className="flex items-center justify-between">
-          <p className="panel-heading">Componenten op het plan</p>
+          <p className="panel-heading">Symbolen op het plan</p>
           <button onClick={toggleLeft} title="Lijst inklappen" className="btn-icon -my-1">
             <PanelLeftClose className="h-4 w-4" />
           </button>
         </div>
         <p className="mt-1 text-[11px] leading-snug text-slate-500">
           {hasPhoto
-            ? 'Klik op een component en duid daarna de plaats aan op de foto.'
-            : 'Laad eerst rechts een foto van de woning.'}
+            ? 'Klik op een symbool en duid daarna de plaats aan op het plan.'
+            : 'Laad eerst rechts een grondplan of foto van de woning.'}
         </p>
       </div>
 
@@ -65,6 +72,7 @@ export const PlanPanel = () => {
                   <ComponentRow
                     key={entry.nodeId}
                     entry={entry}
+                    node={nodeById.get(entry.nodeId) ?? null}
                     placedCount={markerCount.get(entry.nodeId) ?? 0}
                     pending={pendingNodeId === entry.nodeId}
                     disabled={!hasPhoto}
@@ -80,8 +88,8 @@ export const PlanPanel = () => {
       </div>
 
       <div className="panel-section shrink-0 text-[11px] leading-snug text-slate-500">
-        De nummers zijn gekoppeld aan het eendraadschema: wijzigt het schema, dan veranderen de
-        markeringen op de foto automatisch mee.
+        De symbolen zijn gekoppeld aan het eendraadschema: wijzigt het schema, dan veranderen de
+        symbolen en hun nummers op het plan automatisch mee.
       </div>
     </aside>
   );
@@ -89,22 +97,23 @@ export const PlanPanel = () => {
 
 interface ComponentRowProps {
   entry: PlanEntry;
+  node: SchemaNode | null;
   placedCount: number;
   pending: boolean;
   disabled: boolean;
   onClick: () => void;
 }
 
-const ComponentRow = ({ entry, placedCount, pending, disabled, onClick }: ComponentRowProps) => (
+const ComponentRow = ({ entry, node, placedCount, pending, disabled, onClick }: ComponentRowProps) => (
   <button
     onClick={onClick}
     disabled={disabled}
     title={
       disabled
-        ? 'Laad eerst een foto'
+        ? 'Laad eerst een plan of foto'
         : pending
           ? 'Klik nogmaals om te annuleren'
-          : 'Klik en duid daarna de plaats aan op de foto'
+          : 'Klik en duid daarna de plaats aan op het plan'
     }
     className={
       'flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ' +
@@ -117,6 +126,11 @@ const ComponentRow = ({ entry, placedCount, pending, disabled, onClick }: Compon
     >
       {entry.label}
     </span>
+    {node ? (
+      <span className="flex h-8 w-10 shrink-0 items-center justify-center rounded bg-white">
+        <SymbolPreview node={node} width={40} height={32} />
+      </span>
+    ) : null}
     <span className="min-w-0 flex-1">
       <span className="block truncate text-xs text-slate-200">{entry.title}</span>
       {entry.sub ? (
