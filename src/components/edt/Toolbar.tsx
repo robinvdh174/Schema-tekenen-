@@ -6,6 +6,7 @@ import {
   HelpCircle,
   Image,
   ImageUp,
+  ListChecks,
   Redo2,
   Save,
   SquareStack,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useSchemaStore } from '@/store/schemaStore';
 import { downloadPdf, downloadPng, downloadProjectJson, readProjectFile } from '@/edt/io';
+import { BomDialog } from '@/components/edt/BomDialog';
 import { APP_VERSION } from '@/version';
 
 const HelpPopover = ({ onClose }: { onClose: () => void }) => (
@@ -77,6 +79,7 @@ export const Toolbar = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [bomOpen, setBomOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const handleNew = () => {
@@ -166,6 +169,14 @@ export const Toolbar = () => {
         <div className="toolbar-separator" />
         <button
           className="btn-ghost"
+          title="Materiaallijst — automatisch geteld uit het schema"
+          onClick={() => setBomOpen(true)}
+        >
+          <ListChecks className="h-4 w-4" />
+          <span className="hidden lg:inline">Materiaallijst</span>
+        </button>
+        <button
+          className="btn-ghost"
           title={view === 'plan' ? 'Ga naar de schema-weergave om te exporteren' : 'Exporteren als afbeelding (PNG)'}
           disabled={busy || view === 'plan'}
           onClick={() => void exportWith(() => downloadPng(doc))}
@@ -188,6 +199,7 @@ export const Toolbar = () => {
       </div>
 
       {helpOpen ? <HelpPopover onClose={() => setHelpOpen(false)} /> : null}
+      {bomOpen ? <BomDialog onClose={() => setBomOpen(false)} /> : null}
     </header>
   );
 };
