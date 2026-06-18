@@ -39,7 +39,7 @@ const ViewSwitcher = () => {
   const setView = useSchemaStore((s) => s.setView);
   const tabs = [
     { id: 'schema' as const, label: 'Schema', icon: SquareStack },
-    { id: 'plan' as const, label: 'Foto / plan', icon: ImageUp },
+    { id: 'plan' as const, label: 'Situatieplan', icon: ImageUp },
   ];
   return (
     <div className="flex items-center rounded-md border border-panel-border bg-panel-dark p-0.5">
@@ -49,7 +49,7 @@ const ViewSwitcher = () => {
           <button
             key={id}
             onClick={() => setView(id)}
-            title={id === 'schema' ? 'Eendraadschema' : 'Foto van de woning met markeringen'}
+            title={id === 'schema' ? 'Eendraadschema' : 'Situatieplan met de symbolen op de plattegrond'}
             className={
               'inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ' +
               (active ? 'bg-accent text-white shadow' : 'text-slate-300 hover:bg-panel-light')

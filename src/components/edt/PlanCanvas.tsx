@@ -1,16 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Circle, Group, Image as KonvaImage, Layer, Stage, Text } from 'react-konva';
+import { Image as KonvaImage, Layer, Stage } from 'react-konva';
 import type Konva from 'konva';
-import { ImagePlus, Maximize, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+  ImagePlus,
+  Maximize,
+  Minus,
+  Plus,
+  RotateCcw,
+  RotateCw,
+  Trash2,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
 import { computePlanNumbering, emptyPlan } from '@/edt/plan';
-import type { PlanEntry, PlanMarker, PlanPhoto } from '@/edt/plan';
+import type { PlanPhoto } from '@/edt/plan';
+import { walk, type SchemaNode } from '@/edt/model';
 import { useSchemaStore } from '@/store/schemaStore';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { createId } from '@/utils/id';
+import { PlanSymbol } from './PlanSymbol';
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 6;
-const MARKER_RADIUS = 14;
 /** Foto's groter dan dit worden verkleind om het project klein te houden. */
 const MAX_PHOTO_DIMENSION = 1800;
 
@@ -31,73 +42,10 @@ const usePhotoImage = (dataUrl: string | undefined) => {
   return image;
 };
 
-const MarkerDot = ({
-  marker,
-  entry,
-  selected,
-  scale,
-}: {
-  marker: PlanMarker;
-  entry: PlanEntry;
-  selected: boolean;
-  scale: number;
-}) => {
-  const selectMarker = useSchemaStore((s) => s.selectMarker);
-  const movePlanMarker = useSchemaStore((s) => s.movePlanMarker);
-
-  // Markeringen blijven leesbaar op elk zoomniveau.
-  const k = 1 / Math.max(0.35, Math.min(scale, 3));
-  const r = MARKER_RADIUS * k;
-
-  return (
-    <Group
-      x={marker.position.x}
-      y={marker.position.y}
-      draggable
-      onClick={(e) => {
-        e.cancelBubble = true;
-        selectMarker(marker.id);
-      }}
-      onTap={(e) => {
-        e.cancelBubble = true;
-        selectMarker(marker.id);
-      }}
-      onDragStart={() => selectMarker(marker.id)}
-      onDragEnd={(e) => {
-        const node = e.target as Konva.Group;
-        movePlanMarker(marker.id, { x: node.x(), y: node.y() });
-      }}
-    >
-      <Circle
-        radius={r}
-        fill={entry.color}
-        stroke="#ffffff"
-        strokeWidth={(selected ? 3 : 1.5) * k}
-        shadowColor="#000000"
-        shadowBlur={5 * k}
-        shadowOpacity={0.4}
-      />
-      <Text
-        text={entry.label}
-        width={r * 2}
-        height={r * 2}
-        offsetX={r}
-        offsetY={r}
-        align="center"
-        verticalAlign="middle"
-        fontSize={(entry.label.length > 3 ? 8.5 : 10.5) * k}
-        fontStyle="bold"
-        fontFamily="Inter, system-ui, sans-serif"
-        fill="#ffffff"
-        listening={false}
-      />
-    </Group>
-  );
-};
-
 /**
- * Foto-plan: een foto van de woning waarop de componenten uit het
- * eendraadschema als genummerde markeringen worden geplaatst.
+ * Situatieplan: een foto/grondplan van de woning waarop de componenten uit het
+ * eendraadschema als hun echte AREI-symbolen worden geplaatst (zoals het
+ * situatieschema in Trikker). De symbolen blijven gekoppeld aan het schema.
  */
 export const PlanCanvas = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -116,12 +64,22 @@ export const PlanCanvas = () => {
   const updatePlanPhoto = useSchemaStore((s) => s.updatePlanPhoto);
   const addPlanMarker = useSchemaStore((s) => s.addPlanMarker);
   const removePlanMarker = useSchemaStore((s) => s.removePlanMarker);
+  const rotatePlanMarker = useSchemaStore((s) => s.rotatePlanMarker);
+  const scalePlanMarker = useSchemaStore((s) => s.scalePlanMarker);
 
   const plan = doc.plan ?? emptyPlan();
   const photo = plan.photo;
   const image = usePhotoImage(photo?.dataUrl);
   const numbering = useMemo(() => computePlanNumbering(doc.tree), [doc.tree]);
   const pendingEntry = pendingNodeId ? numbering.byId.get(pendingNodeId) : undefined;
+
+  // Snelle opzoeking van de schema-node per id, zodat elk symbool rechtstreeks
+  // uit de actuele boom getekend wordt (en dus automatisch meeverandert).
+  const nodeById = useMemo(() => {
+    const map = new Map<string, SchemaNode>();
+    walk(doc.tree, (node) => map.set(node.id, node));
+    return map;
+  }, [doc.tree]);
 
   const applyScale = (next: number, center?: { x: number; y: number }) => {
     const stage = stageRef.current;
@@ -304,11 +262,13 @@ export const PlanCanvas = () => {
             ) : null}
             {plan.markers.map((marker) => {
               const entry = numbering.byId.get(marker.nodeId);
-              return entry ? (
-                <MarkerDot
+              const node = nodeById.get(marker.nodeId);
+              return entry && node ? (
+                <PlanSymbol
                   key={marker.id}
                   marker={marker}
                   entry={entry}
+                  node={node}
                   selected={marker.id === selectedMarkerId}
                   scale={scale}
                 />
@@ -324,11 +284,12 @@ export const PlanCanvas = () => {
           <div className="mx-4 max-w-md rounded-xl border border-slate-300 bg-white p-6 text-center shadow-lg">
             <ImagePlus className="mx-auto mb-3 h-10 w-10 text-slate-400" />
             <p className="mb-1 text-sm font-semibold text-slate-800">
-              Laad een foto of grondplan van de woning
+              Laad een grondplan of foto van de woning
             </p>
             <p className="mb-4 text-xs leading-relaxed text-slate-500">
-              Daarna kies je links een component uit het eendraadschema en klik je op de foto
-              om de plaats aan te duiden. De nummering (bv. 2.3) volgt automatisch het schema.
+              Daarna kies je links een component uit het eendraadschema en klik je op het plan
+              om het <b>echte symbool</b> te plaatsen. Verslepen, draaien en vergroten kan; de
+              symbolen blijven gekoppeld aan het schema en veranderen automatisch mee.
             </p>
             <button className="btn-primary px-4 py-2" onClick={() => fileInputRef.current?.click()}>
               Foto kiezen…
@@ -386,9 +347,9 @@ export const PlanCanvas = () => {
             </label>
             <button
               className="flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50"
-              title="Foto verwijderen (markeringen blijven bewaard)"
+              title="Plan/foto verwijderen (geplaatste symbolen blijven bewaard)"
               onClick={() => {
-                if (window.confirm('Foto verwijderen? De markeringen blijven bewaard.')) {
+                if (window.confirm('Plan/foto verwijderen? De geplaatste symbolen blijven bewaard.')) {
                   setPlanPhoto(null);
                 }
               }}
@@ -399,26 +360,63 @@ export const PlanCanvas = () => {
         ) : null}
       </div>
 
-      {/* Geselecteerde markering */}
+      {/* Geselecteerd symbool: verplaatsen, draaien, vergroten, verwijderen */}
       {selectedMarker && selectedEntry ? (
-        <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-slate-300 bg-white/95 px-3 py-2 shadow-lg">
+        <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-slate-300 bg-white/95 px-3 py-2 shadow-lg">
           <span
             className="flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
             style={{ backgroundColor: selectedEntry.color }}
           >
             {selectedEntry.label}
           </span>
-          <span className="text-xs text-slate-700">
+          <span className="max-w-[14rem] truncate text-xs text-slate-700">
             {selectedEntry.title}
             {selectedEntry.sub ? <span className="text-slate-400"> — {selectedEntry.sub}</span> : null}
           </span>
+
+          <span className="mx-1 h-5 w-px bg-slate-300" />
+
+          {/* Draaien */}
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100"
+            title="45° linksom draaien"
+            onClick={() => rotatePlanMarker(selectedMarker.id, (selectedMarker.rotation ?? 0) - 45)}
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100"
+            title="45° rechtsom draaien"
+            onClick={() => rotatePlanMarker(selectedMarker.id, (selectedMarker.rotation ?? 0) + 45)}
+          >
+            <RotateCw className="h-4 w-4" />
+          </button>
+
+          {/* Grootte */}
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100"
+            title="Kleiner"
+            onClick={() => scalePlanMarker(selectedMarker.id, (selectedMarker.scale ?? 1) / 1.2)}
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100"
+            title="Groter"
+            onClick={() => scalePlanMarker(selectedMarker.id, (selectedMarker.scale ?? 1) * 1.2)}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+
+          <span className="mx-1 h-5 w-px bg-slate-300" />
+
           <button
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-            title="Markering verwijderen (Delete)"
+            title="Symbool verwijderen (Delete)"
             onClick={() => removePlanMarker(selectedMarker.id)}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Verwijderen
+            <span className="hidden sm:inline">Verwijderen</span>
           </button>
         </div>
       ) : null}

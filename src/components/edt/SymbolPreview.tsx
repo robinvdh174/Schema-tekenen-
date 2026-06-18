@@ -1,30 +1,24 @@
 import { memo, useMemo } from 'react';
 import { Group, Layer, Line, Stage } from 'react-konva';
 import { defaultProps } from '@/edt/catalog';
-import { hMetrics, verticalBlockHeight, VERTICAL_KINDS, type PlacedNode } from '@/edt/layout';
-import { createNode, type PropValue } from '@/edt/model';
+import { type PlacedNode } from '@/edt/layout';
+import { createNode, type PropValue, type SchemaNode } from '@/edt/model';
 import { glyphFor } from './NodeGlyph';
+import {
+  BLANK_KEYS,
+  buildPlanSymbol,
+  previewBox,
+  previewOrient,
+  type SymbolBox as Box,
+} from './symbolRender';
 
 /**
- * Mini-voorbeeld van een symbool voor in het palet: rendert exact dezelfde
- * tekening als op het schema (via glyphFor), passend geschaald in een klein
- * wit vlak. Tekstvelden (kabel, label, ampère …) worden leeggemaakt zodat
- * enkel het zuivere AREI-symbool te zien is.
+ * Mini-voorbeeld van een symbool: rendert exact dezelfde tekening als op het
+ * schema (via glyphFor), passend geschaald in een klein wit vlak. Twee modi:
+ *  - `kind` (+overrides): een palettegel — tekstvelden worden leeggemaakt zodat
+ *    enkel het zuivere AREI-symbool te zien is;
+ *  - `node`: het echte symbool van een bestaande schema-node (situatieplan-lijst).
  */
-
-/** Props die in een voorbeeld geen tekst mogen tonen. */
-const BLANK_KEYS = [
-  'label',
-  'kabel',
-  'kringnr',
-  'net',
-  'vermogen',
-  'polen',
-  'ampere',
-  'curve',
-  'difftype',
-  'gevoeligheid',
-];
 
 const previewProps = (
   kind: string,
@@ -37,45 +31,20 @@ const previewProps = (
   return { ...props, ...overrides };
 };
 
-/** Relais en SPD tonen hun herkenbare symbool in horizontale vorm. */
-const previewOrient = (kind: string): 'v' | 'h' =>
-  kind !== 'relais' && kind !== 'overspanning' && VERTICAL_KINDS.has(kind) ? 'v' : 'h';
-
-interface Box {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-/** Zichtbare begrenzing van het voorbeeldsymbool (in tekencoördinaten). */
-const previewBox = (node: PlacedNode['node'], orient: 'v' | 'h'): Box => {
-  if (orient === 'v') {
-    const h = verticalBlockHeight(node);
-    // Iets ruimte onder y=0 voor bv. de pijl van de netaansluiting.
-    return { x: -28, y: -h - 2, w: 56, h: h + 14 };
-  }
-  const m = hMetrics(node);
-  // Zonder labels is de ruimte onder/boven de lijn kleiner dan de layoutmaat.
-  // De SPD tekent onderaan het aardingssymbool — die ruimte behouden; bij een
-  // toestel valt de type-ondertitel (y ≥ 24) zo net buiten beeld, want het
-  // tegel-label vermeldt het type al.
-  const up = node.kind === 'overspanning' ? m.up : Math.min(m.up, 24);
-  const down =
-    node.kind === 'overspanning' ? m.down : node.kind === 'toestel' ? 22 : Math.min(m.down, 24);
-  return { x: -2, y: -up - 2, w: m.adv + 4, h: up + down + 4 };
-};
-
 interface SymbolPreviewProps {
-  kind: string;
+  /** Palettegel: toon het symbool voor dit type (met optionele overrides). */
+  kind?: string;
   overrides?: Record<string, PropValue>;
+  /** Of: toon het symbool van een bestaande schema-node. */
+  node?: SchemaNode;
   width?: number;
   height?: number;
 }
 
 export const SymbolPreview = memo(
-  ({ kind, overrides, width = 112, height = 54 }: SymbolPreviewProps) => {
+  ({ kind, overrides, node, width = 112, height = 54 }: SymbolPreviewProps) => {
     const { element, box } = useMemo((): { element: JSX.Element; box: Box } => {
+      if (node) return buildPlanSymbol(node);
       // Het verdeelbord wordt op het schema door de layout getekend (dikke
       // lijn); voor het voorbeeld tekenen we die hier zelf.
       if (kind === 'bord') {
@@ -89,10 +58,10 @@ export const SymbolPreview = memo(
           box: { x: -34, y: -10, w: 88, h: 26 },
         };
       }
-      const node = createNode(kind, previewProps(kind, overrides));
-      const orient = previewOrient(kind);
+      const built = createNode(kind!, previewProps(kind!, overrides));
+      const orient = previewOrient(kind!);
       const placed: PlacedNode = {
-        node,
+        node: built,
         parent: null,
         orient,
         x: 0,
@@ -100,8 +69,8 @@ export const SymbolPreview = memo(
         box: { x: 0, y: 0, w: 0, h: 0 },
         kringnr: null,
       };
-      return { element: glyphFor(placed), box: previewBox(node, orient) };
-    }, [kind, overrides]);
+      return { element: glyphFor(placed), box: previewBox(built, orient) };
+    }, [kind, overrides, node]);
 
     const pad = 4;
     const scale = Math.min((width - pad * 2) / box.w, (height - pad * 2) / box.h, 1.3);
